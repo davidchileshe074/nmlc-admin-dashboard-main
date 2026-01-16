@@ -42,6 +42,7 @@ export interface Content {
   type: ContentType;
   yearOfStudy: YearOfStudy;
   program: Program;
+  subject?: string;
   storageFileId: string;
   durationSeconds?: number;
   createdAt: string;

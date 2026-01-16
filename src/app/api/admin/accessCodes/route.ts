@@ -2,6 +2,7 @@ import { NextResponse } from 'next/server';
 import { assertAdmin } from '@/server/auth';
 import { createAdminClient, SERVER_CONFIG } from '@/server/appwrite';
 import { ID, Query } from 'node-appwrite';
+import { createNotification, NotificationTemplates } from '@/server/notifications';
 
 export async function POST(request: Request) {
     try {
@@ -44,22 +45,22 @@ export async function POST(request: Request) {
 
             // Let's check for 'ACTIVE' as well to be safe or use what frontend uses.
             // Frontend: s.subscription?.status === 'ACTIVE'
-            
+
             if (activeSubs.total === 0) {
-                 // Try uppercase check just in case backend stores it as ACTIVE
-                 const activeSubsUpper = await adminClient.databases.listDocuments(
+                // Try uppercase check just in case backend stores it as ACTIVE
+                const activeSubsUpper = await adminClient.databases.listDocuments(
                     SERVER_CONFIG.databaseId,
                     SERVER_CONFIG.collections.subscriptions,
                     [
                         Query.equal('userId', userId),
-                        Query.equal('status', 'ACTIVE') 
+                        Query.equal('status', 'ACTIVE')
                     ]
                 );
                 if (activeSubsUpper.total > 0) {
                     return NextResponse.json({ error: 'Student already has an active subscription.' }, { status: 409 });
                 }
             } else {
-                 return NextResponse.json({ error: 'Student already has an active subscription.' }, { status: 409 });
+                return NextResponse.json({ error: 'Student already has an active subscription.' }, { status: 409 });
             }
         }
 
@@ -81,6 +82,25 @@ export async function POST(request: Request) {
         }
 
         await Promise.all(codes);
+
+        // Create notification for access code generation
+        if (userId) {
+            try {
+                // Fetch student name for notification
+                const student = await adminClient.databases.getDocument(
+                    SERVER_CONFIG.databaseId,
+                    SERVER_CONFIG.collections.profiles,
+                    userId
+                );
+
+                await createNotification(
+                    NotificationTemplates.accessCodeGenerated(student.fullName || 'Student')
+                );
+            } catch (notifError) {
+                console.error('Failed to create notification:', notifError);
+                // Don't fail the request if notification fails
+            }
+        }
 
         return NextResponse.json({ success: true, count: codes.length });
     } catch (error: any) {

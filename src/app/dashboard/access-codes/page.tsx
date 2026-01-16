@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useState } from 'react';
+import { toast } from 'sonner';
 import {
     Button,
     Card,
@@ -26,7 +27,8 @@ import {
     Loader2,
     Filter,
     RefreshCw,
-    Search
+    Search,
+    ChevronDown
 } from 'lucide-react';
 import { AccessCode } from '@/types';
 
@@ -41,12 +43,13 @@ export default function AccessCodesPage() {
     // const [quantity, setQuantity] = useState(1); // implicit
     const [prefix, setPrefix] = useState('NLC-');
 
-    // Search states
-    const [searchQuery, setSearchQuery] = useState('');
-    const [searchResults, setSearchResults] = useState<any[]>([]); // Using any for brevity, or partial Profile
+    // Search/Dropdown states
+    const [allStudents, setAllStudents] = useState<any[]>([]);
+    const [isDropdownOpen, setIsDropdownOpen] = useState(false);
     const [selectedStudent, setSelectedStudent] = useState<any | null>(null);
 
     const fetchCodes = async () => {
+        // ... existing fetchCodes logic ...
         setLoading(true);
         try {
             const params = new URLSearchParams();
@@ -56,37 +59,55 @@ export default function AccessCodesPage() {
             setCodes(data.documents || []);
         } catch (err) {
             console.error(err);
+            toast.error('Failed to fetch codes');
         } finally {
             setLoading(false);
         }
     };
 
+    // Fetch students for dropdown
+    useEffect(() => {
+        const fetchStudents = async () => {
+            try {
+                const res = await fetch(`/api/admin/students?limit=100`);
+                const data = await res.json();
+                setAllStudents(data.students || []);
+            } catch (err) {
+                console.error(err);
+            }
+        };
+        fetchStudents();
+        fetchCodes();
+    }, []); // Run once on mount
+
+    // Effect for filter change
+    useEffect(() => {
+        if (!allStudents.length) return; // Skip initial empty
+        // We handle code fetching here separately if we want, but keeping existing structure:
+        const fetchCodesOnly = async () => {
+            // ... duplicate logic or keep fetchCodes reusable?
+            // Actually, fetchCodes depends on usedFilter, so we need it in deps.
+            // Converting fetchCodes to useCallback or just defining inside effect is cleaner but let's stick to simple.
+            // Re-using the fetchCodes function defined above. 
+            // BUT, fetchCodes uses state `usedFilter`. 
+            // Let's just call fetchCodes() in the usedFilter effect below 
+        };
+    }, []);
+
+    // Effect to refetch codes when filter changes
     useEffect(() => {
         fetchCodes();
     }, [usedFilter]);
 
-    // Debounced search / initial load
-    useEffect(() => {
-        const timer = setTimeout(async () => {
-            try {
-                // Fetch defaults even if empty to show "dropdown" list
-                const res = await fetch(`/api/admin/students?search=${searchQuery}&limit=10`);
-                const data = await res.json();
-                setSearchResults(data.students || []);
-            } catch (err) {
-                console.error(err);
-            }
-        }, 300);
-        return () => clearTimeout(timer);
-    }, [searchQuery]);
 
     const handleGenerate = async (e: React.FormEvent) => {
+        // ... (keep existing handleGenerate, it uses selectedStudent)
         e.preventDefault();
         if (!selectedStudent) return;
 
         // Block if subscription is active
         if (selectedStudent.subscription?.status === 'ACTIVE') {
-            alert("This student already has an active subscription.");
+            toast.error("This student already has an active subscription.");
             return;
         }
 
@@ -105,15 +126,15 @@ export default function AccessCodesPage() {
 
             if (res.ok) {
                 fetchCodes();
-                alert(`Code generated successfully for ${selectedStudent.fullName}!`);
+                toast.success(`Code generated successfully for ${selectedStudent.fullName}!`);
                 setSelectedStudent(null);
-                setSearchQuery('');
-                // Refresh student search to update their status potentially
             } else {
-                alert('Failed to generate codes');
+                const data = await res.json();
+                toast.error(data.error || 'Failed to generate codes');
             }
         } catch (err) {
             console.error(err);
+            toast.error('An unexpected error occurred');
         } finally {
             setGenerating(false);
         }
@@ -130,6 +151,7 @@ export default function AccessCodesPage() {
     return (
         <div className="space-y-8">
             <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+                {/* ... Header ... */}
                 <div>
                     <h1 className="text-3xl font-bold text-slate-900 tracking-tight">Access Codes</h1>
                     <p className="text-slate-500 mt-1">Generate and manage subscription redemption codes.</p>
@@ -153,7 +175,7 @@ export default function AccessCodesPage() {
                     </CardHeader>
                     <CardContent>
                         <form onSubmit={handleGenerate} className="space-y-4">
-                            <div className="space-y-2 max-h-[300px] relative">
+                            <div className="space-y-2 relative">
                                 <label className="text-sm font-medium">Select Student *</label>
                                 {selectedStudent ? (
                                     <div className="space-y-2">
@@ -190,59 +212,58 @@ export default function AccessCodesPage() {
                                     </div>
                                 ) : (
                                     <div className="relative">
-                                        <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400 w-3.5 h-3.5" />
-                                        <Input
-                                            placeholder="Search name..."
-                                            className="pl-9"
-                                            value={searchQuery}
-                                            onChange={(e) => setSearchQuery(e.target.value)}
-                                            onFocus={() => {
-                                                if (searchResults.length === 0) setSearchQuery(''); // Trigger fetch
-                                            }}
-                                        />
-                                        {searchResults.length > 0 && (
-                                            <div className="absolute top-full left-0 right-0 mt-1 bg-white border border-slate-200 rounded-md shadow-lg z-10 max-h-60 overflow-y-auto">
-                                                {searchResults.map((s) => (
-                                                    <button
-                                                        key={s.$id}
-                                                        type="button"
-                                                        // We allow selecting them to see the warning, but visually indicate it
-                                                        className={cn(
-                                                            "w-full text-left px-3 py-2 text-sm border-b border-slate-50 last:border-none flex items-center justify-between group",
-                                                            s.subscription?.status === 'ACTIVE' ? "bg-slate-50" : "hover:bg-blue-50"
-                                                        )}
-                                                        onClick={() => {
-                                                            setSelectedStudent(s);
-                                                            setSearchQuery('');
-                                                            setSearchResults([]);
-                                                        }}
-                                                    >
-                                                        <div>
-                                                            <p className="font-medium text-slate-800">{s.fullName}</p>
-                                                            <p className="text-xs text-slate-500">{s.email}</p>
-                                                        </div>
-                                                        {s.subscription?.status === 'ACTIVE' && (
-                                                            <span className="text-[10px] bg-green-100 text-green-700 px-1.5 py-0.5 rounded-full font-bold">
-                                                                ACTIVE
-                                                            </span>
-                                                        )}
-                                                    </button>
-                                                ))}
-                                            </div>
+                                        <div
+                                            className="flex items-center justify-between w-full h-10 px-3 border border-slate-200 rounded-md bg-white cursor-pointer hover:border-slate-300"
+                                            onClick={() => setIsDropdownOpen(!isDropdownOpen)}
+                                        >
+                                            <span className="text-sm text-slate-500">Select a student...</span>
+                                            <ChevronDown className="w-4 h-4 text-slate-400" />
+                                        </div>
+
+                                        {isDropdownOpen && (
+                                            <>
+                                                <div className="fixed inset-0 z-10" onClick={() => setIsDropdownOpen(false)} />
+                                                <div className="absolute top-full left-0 right-0 mt-1 bg-white border border-slate-200 rounded-md shadow-lg z-20 max-h-60 overflow-y-auto">
+                                                    {allStudents.length > 0 ? (
+                                                        allStudents.map((s) => (
+                                                            <button
+                                                                key={s.$id}
+                                                                type="button"
+                                                                className={cn(
+                                                                    "w-full text-left px-3 py-2 text-sm border-b border-slate-50 last:border-none flex items-center justify-between group",
+                                                                    s.subscription?.status === 'ACTIVE' ? "bg-slate-50" : "hover:bg-blue-50"
+                                                                )}
+                                                                onClick={() => {
+                                                                    setSelectedStudent(s);
+                                                                    setIsDropdownOpen(false);
+                                                                }}
+                                                            >
+                                                                <div>
+                                                                    <p className="font-medium text-slate-800">{s.fullName}</p>
+                                                                    <p className="text-xs text-slate-500">{s.email}</p>
+                                                                </div>
+                                                                {s.subscription?.status === 'ACTIVE' && (
+                                                                    <span className="text-[10px] bg-green-100 text-green-700 px-1.5 py-0.5 rounded-full font-bold">
+                                                                        ACTIVE
+                                                                    </span>
+                                                                )}
+                                                            </button>
+                                                        ))
+                                                    ) : (
+                                                        <div className="p-2 text-sm text-slate-500 text-center">No students found</div>
+                                                    )}
+                                                </div>
+                                            </>
                                         )}
                                     </div>
                                 )}
                             </div>
 
                             <div className="space-y-2">
-                                <label className="text-sm font-medium">Duration (Days)</label>
-                                <select className="flex h-10 w-full rounded-md border border-slate-200 bg-white px-3 py-2 text-sm" value={duration} onChange={e => setDuration(parseInt(e.target.value))}>
-                                    <option value={7}>7 Days</option>
-                                    <option value={30}>30 Days</option>
-                                    <option value={90}>90 Days</option>
-                                    <option value={180}>180 Days</option>
-                                    <option value={365}>1 Year</option>
-                                </select>
+                                <label className="text-sm font-medium">Duration</label>
+                                <div className="flex h-10 w-full items-center rounded-md border border-slate-200 bg-slate-50 px-3 text-sm text-slate-500">
+                                    30 Days (Fixed)
+                                </div>
                             </div>
 
                             <Button type="submit" className="w-full" disabled={generating || !selectedStudent || isSubscriptionActive}>
@@ -319,9 +340,7 @@ export default function AccessCodesPage() {
                                                 )}
                                             </TableCell>
                                             <TableCell>
-                                                <span className="text-xs text-slate-500 font-mono">
-                                                    {code.usedByUserId || '--'}
-                                                </span>
+                                                <StudentNameDisplay userId={code.usedByUserId} />
                                             </TableCell>
                                             <TableCell className="text-xs text-slate-400 italic">
                                                 {new Date(code.$createdAt).toLocaleDateString()}
@@ -336,6 +355,45 @@ export default function AccessCodesPage() {
             </div>
         </div>
     );
+}
+
+function StudentNameDisplay({ userId }: { userId?: string }) {
+    const [name, setName] = useState<string>('');
+    const [loading, setLoading] = useState(false);
+
+    useEffect(() => {
+        if (!userId) return;
+
+        const fetchName = async () => {
+            setLoading(true);
+            try {
+                // Try to find the student. Assuming search works or we have an endpoint.
+                // If search doesn't support ID, this might fail to find exact match.
+                // But for now it's our best bet without a new ID-specific endpoint.
+                // Improving: Only search if valid ID. 
+                const res = await fetch(`/api/admin/students?search=${userId}`);
+                const data = await res.json();
+                if (data.students && data.students.length > 0) {
+                    // Look for exact ID match just in case
+                    const student = data.students.find((s: any) => s.$id === userId) || data.students[0];
+                    setName(student.fullName);
+                } else {
+                    setName(userId); // Fallback to ID
+                }
+            } catch (e) {
+                setName(userId); // Fallback
+            } finally {
+                setLoading(false);
+            }
+        };
+
+        fetchName();
+    }, [userId]);
+
+    if (!userId) return <span className="text-xs text-slate-500 font-mono">--</span>;
+    if (loading) return <span className="text-xs text-slate-400 animate-pulse">Loading...</span>;
+
+    return <span className="text-xs text-slate-700 font-medium">{name}</span>;
 }
 
 function cn(...inputs: any[]) {

@@ -53,6 +53,7 @@ Create the following collections with these attributes:
 - `type` (string, required): Enum `PDF`, `AUDIO`, `PAST_PAPER`, `MARKING_KEY`
 - `yearOfStudy` (string, required)
 - `program` (string, required)
+- `subject` (string, nullable) - **NEW: Course/Subject name**
 - `storageFileId` (string, required)
 - `durationSeconds` (integer, nullable)
 - `createdAt` (datetime, required)
@@ -73,6 +74,16 @@ Create the following collections with these attributes:
 - `createdAt` (datetime, required)
 - **Indexes**: `userId` (unique)
 - **Initial Setup**: Manually add your own Appwrite User ID to this collection to gain access.
+
+#### `notifications`
+- `type` (string, required): Enum `info`, `warning`, `success`
+- `title` (string, required)
+- `message` (string, required)
+- `targetUrl` (string, nullable) - URL to navigate when clicked
+- `read` (boolean, default false)
+- `readAt` (datetime, nullable)
+- `createdAt` (datetime, required)
+- **Indexes**: `type` (key), `read` (key), `createdAt` (key)
 
 ### 4. Storage Bucket
 - Create a bucket for content (get the ID and put it in `.env.local` as `APPWRITE_BUCKET_ID`).

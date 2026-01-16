@@ -51,5 +51,6 @@ export const SERVER_CONFIG = {
         subscriptions: process.env.COL_SUBSCRIPTIONS || 'subscriptions',
         content: process.env.COL_CONTENT || 'content',
         accessCodes: process.env.COL_ACCESS_CODES || 'accessCodes',
+        notifications: process.env.COL_NOTIFICATIONS || 'notifications',
     }
 };

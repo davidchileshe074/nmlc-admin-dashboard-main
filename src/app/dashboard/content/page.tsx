@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useState } from 'react';
+import { toast } from 'sonner';
 import {
     Button,
     Card,
@@ -32,6 +33,86 @@ import {
 } from 'lucide-react';
 import { Content } from '@/types';
 
+const COURSES_DATA = {
+    RN: {
+        YEAR_1: [
+            "Anatomy and Physiology", "Fundamentals of Nursing", "Health Communication in Nursing", "Microbiology",
+            "Medical–Surgical Nursing", "Nutrition", "Professional Practice", "Public Health Nursing",
+            "Pharmacology I", "Psychology in Nursing", "Sociology in Nursing", "Surgery and Surgical Nursing"
+        ],
+        YEAR_2: [
+            "Psychiatry and Mental Health Nursing", "Pharmacology II", "Paediatric and Paediatric Nursing",
+            "Medical–Surgical Nursing II", "Leadership, Management and Governance", "Integrated Reproductive Health", "Introduction to Research"
+        ],
+        YEAR_3: [
+            "Paediatric and Paediatric Nursing", "Medical–Surgical Nursing", "Integrated Reproductive Health",
+            "Mental Health and Psychiatry Nursing", "Leadership, Management and Governance"
+        ]
+    },
+    MENTAL_HEALTH: {
+        YEAR_1: [
+            "Anatomy and Physiology", "Fundamentals of Nursing", "Health Communication in Nursing",
+            "Medical–Surgical Nursing", "Neuroscience", "Nutrition", "Professional Practice", "Public Health Nursing", "Sociology"
+        ],
+        YEAR_2: [
+            "Introduction to Research", "Leadership, Management and Governance", "Medical–Surgical Nursing",
+            "Paediatric and Paediatric Nursing", "Pharmacology II", "Psychology II", "Psychiatry and Mental Health"
+        ],
+        YEAR_3: [
+            "Mental Health and Psychiatry", "Community Mental Health", "Leadership and Management"
+        ]
+    },
+    ONCOLOGY: {
+        YEAR_1: [
+            "Anatomy and Physiology", "Fundamentals of Nursing", "Health Communication in Nursing",
+            "Medical–Surgical Nursing", "Nutrition", "Professional Practice", "Public Health Nursing", "Pharmacology"
+        ],
+        YEAR_2: [
+            "Introduction to Research", "Integrated Reproductive Health", "Leadership, Management and Governance",
+            "Medical–Surgical Nursing", "Oncology Nursing", "Palliative Care"
+        ],
+        YEAR_3: [
+            "Leadership, Management and Governance", "Medical–Surgical Nursing", "Oncology II",
+            "Palliative Care Nursing I", "Palliative Nursing II", "Paediatric Nursing"
+        ]
+    },
+    MIDWIFERY: {
+        YEAR_1: [
+            "Sociology in Nursing", "Psychology in Nursing", "Pharmacology I", "Public Health Nursing II",
+            "Professional Practice", "Nutrition", "Medical–Surgical Nursing", "Microbiology",
+            "Health Communication in Nursing", "Fundamentals of Nursing", "Anatomy and Physiology"
+        ],
+        YEAR_2: [
+            "Psychiatry and Mental Health Nursing II", "Pharmacology II", "Paediatric and Paediatric Nursing",
+            "Paediatric and Child Health Nursing", "Obstetric and Midwifery Care", "Medical–Surgical Nursing",
+            "Leadership and Management", "Introduction to Research", "Gynaecology and Gynaecological Care", "Foundations of Midwifery"
+        ],
+        YEAR_3: [
+            "Integrated Sexual and Reproductive Health Rights", "Leadership, Management and Governance",
+            "Neonatology and Neonatal Care", "Obstetric and Midwifery Care"
+        ]
+    },
+    PUBLIC_HEALTH: {
+        YEAR_1: [
+            "Psychology", "Nutrition", "Microbiology", "Fundamentals of Nursing", "Anatomy and Physiology",
+            "Sociology", "Public Health", "Health Promotion", "Health Care Ethics and Public Health Law"
+        ],
+        YEAR_2: [
+            "Surgery and Surgical Nursing", "Integrated Reproductive Health", "Microbiology and Medical Microbiology",
+            "Leadership and Mental Health", "Public Health Nursing"
+        ],
+        YEAR_3: [
+            "Paediatric and Child Health", "Integrated Health", "Leadership and Management",
+            "Research and Epidemiology", "Community Engagement"
+        ]
+    },
+    PAEDIATRIC: {
+        YEAR_1: [],
+        YEAR_2: [],
+        YEAR_3: []
+    }
+};
+
 export default function ContentPage() {
     const [content, setContent] = useState<Content[]>([]);
     const [loading, setLoading] = useState(true);
@@ -48,7 +129,19 @@ export default function ContentPage() {
     const [type, setType] = useState('PDF');
     const [yearOfStudy, setYearOfStudy] = useState('YEAR_1');
     const [program, setProgram] = useState('RN');
+    const [subject, setSubject] = useState('');
     const [file, setFile] = useState<File | null>(null);
+
+    const availableSubjects = COURSES_DATA[program as keyof typeof COURSES_DATA]?.[yearOfStudy as keyof (typeof COURSES_DATA)['RN']] || [];
+
+    useEffect(() => {
+        // Reset subject when program/year changes
+        if (availableSubjects.length > 0) {
+            setSubject(availableSubjects[0]);
+        } else {
+            setSubject('');
+        }
+    }, [program, yearOfStudy]);
 
     const fetchContent = async () => {
         setLoading(true);
@@ -102,6 +195,7 @@ export default function ContentPage() {
             formData.append('type', type);
             formData.append('yearOfStudy', yearOfStudy);
             formData.append('program', program);
+            formData.append('subject', subject);
             formData.append('file', file);
 
             const res = await fetch('/api/admin/content', {
@@ -112,17 +206,18 @@ export default function ContentPage() {
             if (res.ok) {
                 setShowUploadModal(false);
                 fetchContent();
+                toast.success('Content uploaded successfully!');
                 // Reset form
                 setTitle('');
                 setDescription('');
                 setFile(null);
             } else {
                 const error = await res.json();
-                alert(error.error || 'Upload failed');
+                toast.error(error.error || 'Upload failed');
             }
         } catch (err) {
             console.error(err);
-            alert('An error occurred during upload');
+            toast.error('An error occurred during upload');
         } finally {
             setUploading(false);
         }
@@ -132,14 +227,21 @@ export default function ContentPage() {
         if (!confirm('Are you sure you want to delete this content? This cannot be undone.')) return;
 
         try {
-            await fetch('/api/admin/deleteContent', {
+            const res = await fetch('/api/admin/deleteContent', {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({ contentId, storageFileId }),
             });
-            fetchContent();
+            
+            if (res.ok) {
+                toast.success('Content deleted successfully');
+                fetchContent();
+            } else {
+                toast.error('Failed to delete content');
+            }
         } catch (err) {
             console.error(err);
+            toast.error('An error occurred during deletion');
         }
     };
 
@@ -210,6 +312,7 @@ export default function ContentPage() {
                             <TableRow className="hover:bg-transparent">
                                 <TableHead>Type</TableHead>
                                 <TableHead>Title & Description</TableHead>
+                                <TableHead>Subject / Course</TableHead>
                                 <TableHead>Year / Program</TableHead>
                                 <TableHead>Added On</TableHead>
                                 <TableHead className="text-right">Actions</TableHead>
@@ -218,13 +321,13 @@ export default function ContentPage() {
                         <TableBody>
                             {loading ? (
                                 <TableRow>
-                                    <TableCell colSpan={5} className="h-48 text-center">
+                                    <TableCell colSpan={6} className="h-48 text-center">
                                         <Loader2 className="w-8 h-8 text-blue-600 animate-spin mx-auto" />
                                     </TableCell>
                                 </TableRow>
                             ) : content.length === 0 ? (
                                 <TableRow>
-                                    <TableCell colSpan={5} className="h-48 text-center text-slate-500">
+                                    <TableCell colSpan={6} className="h-48 text-center text-slate-500">
                                         No content found.
                                     </TableCell>
                                 </TableRow>
@@ -242,6 +345,11 @@ export default function ContentPage() {
                                                 <p className="font-semibold text-slate-900">{item.title}</p>
                                                 <p className="text-xs text-slate-500 truncate max-w-xs">{item.description}</p>
                                             </div>
+                                        </TableCell>
+                                        <TableCell>
+                                            <span className="text-sm text-slate-700 font-medium">
+                                                {item.subject || '—'}
+                                            </span>
                                         </TableCell>
                                         <TableCell>
                                             <div className="flex gap-2">
@@ -323,6 +431,20 @@ export default function ContentPage() {
                                             <option value="MENTAL_HEALTH">Mental Health</option>
                                             <option value="ONCOLOGY">Oncology</option>
                                             <option value="PAEDIATRIC">Paediatric</option>
+                                        </select>
+                                    </div>
+                                    <div className="space-y-2">
+                                        <label className="text-sm font-medium">Course / Subject</label>
+                                        <select
+                                            className="flex h-10 w-full rounded-md border border-slate-200 bg-white px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+                                            value={subject}
+                                            onChange={e => setSubject(e.target.value)}
+                                            disabled={!availableSubjects.length}
+                                        >
+                                            <option value="">Select a Subject...</option>
+                                            {availableSubjects.map((sub: string) => (
+                                                <option key={sub} value={sub}>{sub}</option>
+                                            ))}
                                         </select>
                                     </div>
                                     <div className="space-y-2 md:col-span-2">
