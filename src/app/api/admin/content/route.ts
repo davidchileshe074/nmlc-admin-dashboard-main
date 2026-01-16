@@ -42,7 +42,7 @@ export async function GET(request: Request) {
 export async function POST(request: Request) {
     try {
         await assertAdmin();
-        const formData = await request.formData();
+        const formData = await request.formData() as unknown as globalThis.FormData;
         const title = formData.get('title') as string;
         const description = formData.get('description') as string;
         const type = formData.get('type') as string;
@@ -80,14 +80,6 @@ export async function POST(request: Request) {
                 title,
                 description,
                 type,
-                yearOfStudy: yearOfStudy, // Store as Enum e.g. YEAR_1 if that is what schema expects. 
-                // Previous code did conversion. I should check if schema allows Enum or String.
-                // Assuming previous code `yearOfStudy.toLowerCase().replace('_', '')` was intentional for a specific schema requirement?
-                // I will keep the conversion if it was there, but it looked suspicious if schema is Enum 'YEAR_1'. 
-                // Let's assume the previous Dev knew what they were doing with `year1`.
-                // Actually, front end sends `YEAR_1`. If backend is `year1`, fine.
-                // BUT, I'll store `subject` as well.
-                // Reverting to previous `yearOfStudy` value but just adding `subject`.
                 yearOfStudy: yearOfStudy.toLowerCase().replace('_', ''),
                 program,
                 subject: subject || null,

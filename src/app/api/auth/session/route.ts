@@ -15,7 +15,7 @@ export async function POST(request: Request) {
         (await cookies()).set('appwrite-session', session, {
             path: '/',
             httpOnly: true,
-            sameSite: 'strict',
+            sameSite: 'lax',
             secure: process.env.NODE_ENV === 'production',
             maxAge: 14 * 60, // 14 mins (JWT expires in 15)
         });

@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useState } from 'react';
+import { useRouter } from 'next/navigation';
 import {
     Button,
     Card,
@@ -29,6 +30,7 @@ import {
 } from 'lucide-react';
 
 export default function SettingsPage() {
+    const router = useRouter();
     const [admins, setAdmins] = useState<any[]>([]);
     const [loading, setLoading] = useState(true);
     const [newUserId, setNewUserId] = useState('');
@@ -54,7 +56,21 @@ export default function SettingsPage() {
     };
 
     useEffect(() => {
-        fetchAdmins();
+        const checkAccess = async () => {
+            try {
+                const res = await fetch('/api/me');
+                const data = await res.json();
+                if (data.email !== 'davidchileshe074@gmail.com') {
+                    router.push('/dashboard');
+                } else {
+                    fetchAdmins();
+                }
+            } catch (err) {
+                console.error(err);
+                router.push('/dashboard');
+            }
+        };
+        checkAccess();
     }, []);
 
     const searchUsers = async (val: string) => {

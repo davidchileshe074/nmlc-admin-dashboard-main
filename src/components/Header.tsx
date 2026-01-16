@@ -27,7 +27,7 @@ interface Notification {
 
 export function Header() {
     const router = useRouter();
-    const [user, setUser] = useState<{ email: string } | null>(null);
+    const [user, setUser] = useState<{ email: string; name: string } | null>(null);
     const [searchQuery, setSearchQuery] = useState('');
     const [searchResults, setSearchResults] = useState<SearchResult[]>([]);
     const [showSearchResults, setShowSearchResults] = useState(false);
@@ -50,7 +50,7 @@ export function Header() {
             .then(res => res.json())
             .then(data => {
                 if (data.authenticated) {
-                    setUser({ email: data.email });
+                    setUser({ email: data.email, name: data.name });
                 }
             });
 
@@ -342,8 +342,8 @@ export function Header() {
                                             key={filter}
                                             onClick={() => setNotificationFilter(filter)}
                                             className={`px-3 py-1 text-xs font-medium rounded-full transition-colors ${notificationFilter === filter
-                                                    ? 'bg-blue-100 text-blue-700'
-                                                    : 'bg-slate-100 text-slate-600 hover:bg-slate-200'
+                                                ? 'bg-blue-100 text-blue-700'
+                                                : 'bg-slate-100 text-slate-600 hover:bg-slate-200'
                                                 }`}
                                         >
                                             {filter.charAt(0).toUpperCase() + filter.slice(1)}
@@ -401,7 +401,7 @@ export function Header() {
                         className="flex items-center gap-3 pl-4 border-l border-slate-100 hover:bg-slate-50 rounded-lg pr-2 py-1 transition-colors"
                     >
                         <div className="text-right hidden sm:block">
-                            <p className="text-sm font-medium text-slate-700">{user?.email || 'Admin User'}</p>
+                            <p className="text-sm font-medium text-slate-700">{user?.name || user?.email || 'Admin'}</p>
                             <p className="text-xs text-slate-400 font-medium">Administrator</p>
                         </div>
                         <div className="w-10 h-10 rounded-full bg-blue-100 flex items-center justify-center text-blue-600">
@@ -414,7 +414,7 @@ export function Header() {
                     {showProfileMenu && (
                         <div className="absolute top-full right-0 mt-2 w-64 bg-white border border-slate-200 rounded-lg shadow-lg">
                             <div className="p-4 border-b border-slate-100">
-                                <p className="text-sm font-medium text-slate-900">{user?.email || 'Admin User'}</p>
+                                <p className="text-sm font-medium text-slate-900">{user?.name || user?.email || 'Admin'}</p>
                                 <p className="text-xs text-slate-500 mt-1">Administrator</p>
                             </div>
                             <div className="py-2">

@@ -4,14 +4,19 @@ import { Query } from 'node-appwrite';
 
 export const assertAdmin = async () => {
     try {
-        const sessionCookie = (await cookies()).get('appwrite-session');
+        const cookieStore = await cookies();
+        const sessionCookie = cookieStore.get('appwrite-session');
 
         if (!sessionCookie || !sessionCookie.value) {
+            console.warn('Auth: No appwrite-session cookie found');
             throw new Error('Unauthorized: No session found');
         }
 
+        console.log('Auth: Session cookie found, length:', sessionCookie.value.length);
+
         const sessionClient = createSessionClient(sessionCookie.value);
         const user = await sessionClient.account.get();
+        console.log('Auth: User retrieved successfully:', user.$id);
 
         // Now check if user is in admins collection using admin client
         const adminClient = createAdminClient();
@@ -22,9 +27,11 @@ export const assertAdmin = async () => {
         );
 
         if (admins.total === 0) {
+            console.warn('Auth: User is not an admin:', user.$id);
             throw new Error('Forbidden: Not an admin');
         }
 
+        console.log('Auth: Admin check passed for:', user.$id);
         return { user, isAdmin: true };
     } catch (error: any) {
         console.error('Auth check failed:', error.message);
@@ -34,12 +41,19 @@ export const assertAdmin = async () => {
 
 export const getSessionUser = async () => {
     try {
-        const sessionCookie = (await cookies()).get('appwrite-session');
-        if (!sessionCookie) return null;
+        const cookieStore = await cookies();
+        const sessionCookie = cookieStore.get('appwrite-session');
+        if (!sessionCookie) {
+            console.log('getSessionUser: No appwrite-session cookie');
+            return null;
+        }
 
         const sessionClient = createSessionClient(sessionCookie.value);
-        return await sessionClient.account.get();
-    } catch {
+        const user = await sessionClient.account.get();
+        console.log('getSessionUser: Found user:', user.$id);
+        return user;
+    } catch (error: any) {
+        console.error('getSessionUser failed:', error.message);
         return null;
     }
 }

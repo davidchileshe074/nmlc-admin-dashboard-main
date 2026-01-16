@@ -19,21 +19,39 @@ export default function LoginPage() {
         setError('');
 
         try {
-            // First create session in Appwrite (sets cookie in browser)
+            // First try to clear any existing stale sessions to ensure a fresh start
             try {
-                await account.createEmailPasswordSession(email, password);
+                await account.deleteSession('current');
+            } catch {
+                // Ignore if no session exists
+            }
+
+            try {
+                const session = await account.createEmailPasswordSession(email, password);
+                console.log('Login: Session created successfully:', session.$id);
             } catch (authError: any) {
-                // If a session is already active (code 401 or specific message), proceed to JWT creation
-                // Otherwise if it's a genuine invalid credentials error, rethrow it
-                if (authError?.code === 401 || authError?.message?.includes('session is active')) {
-                    console.log('Session already active, proceeding to sync...');
+                // 409 Conflict means a session is already active
+                if (authError?.code === 409 || authError?.message?.includes('session is active')) {
+                    console.log('Login: Session already active, proceeding to sync...');
                 } else {
+                    console.error('Login: Session creation failed:', authError);
                     throw authError;
                 }
             }
 
+            // Verify session before creating JWT
+            try {
+                const currentSession = await account.getSession('current');
+                console.log('Login: Verified current session:', currentSession.$id);
+            } catch (verifyError) {
+                console.error('Login: Session verification failed after creation!', verifyError);
+                throw new Error('Session could not be established. Please ensure third-party cookies are enabled.');
+            }
+
             // Create a JWT to allow the Next.js server to act on behalf of the user
+            console.log('Login: Creating JWT...');
             const { jwt } = await account.createJWT();
+            console.log('Login: JWT created successfully');
 
             // Now we need to set the session cookie for Next.js server actions / routes
             const res = await fetch('/api/auth/session', {

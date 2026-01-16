@@ -13,7 +13,7 @@ import {
     ChevronRight,
     Stethoscope
 } from 'lucide-react';
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { cn } from '@/components/ui/base';
 import { Button } from '@/components/ui/base';
 import { account } from '@/lib/appwrite';
@@ -31,12 +31,28 @@ export function Sidebar() {
     const pathname = usePathname();
     const router = useRouter();
     const [collapsed, setCollapsed] = useState(false);
+    const [user, setUser] = useState<{ email: string; name: string } | null>(null);
+
+    useEffect(() => {
+        fetch('/api/me')
+            .then(res => res.json())
+            .then(data => {
+                if (data.authenticated) {
+                    setUser({ email: data.email, name: data.name });
+                }
+            });
+    }, []);
+
+    const filteredMenuItems = menuItems.filter(item => {
+        if (item.label === 'Settings') {
+            return user?.email === 'davidchileshe074@gmail.com';
+        }
+        return true;
+    });
 
     const handleLogout = async () => {
         try {
             await account.deleteSession('current');
-            // Also clear cookie via a logout API if necessary, but Appwrite SDK might handle it if using setSession/getSession
-            // Better to have a server-side logout route to clear the cookie
             await fetch('/api/auth/logout', { method: 'POST' });
             router.push('/login');
         } catch (error) {
@@ -68,7 +84,7 @@ export function Sidebar() {
             </div>
 
             <nav className="flex-1 p-4 space-y-2">
-                {menuItems.map((item) => {
+                {filteredMenuItems.map((item) => {
                     const active = pathname === item.href || (item.href !== '/dashboard' && pathname.startsWith(item.href));
                     return (
                         <Link
@@ -88,7 +104,14 @@ export function Sidebar() {
                 })}
             </nav>
 
-            <div className="p-4 border-t border-slate-100">
+            <div className="p-4 border-t border-slate-100 space-y-4">
+                {!collapsed && user && (
+                    <div className="px-3 py-2 rounded-lg bg-slate-50 border border-slate-100">
+                        <p className="text-xs font-semibold text-slate-900 truncate">{user.name || user.email}</p>
+                        <p className="text-[10px] text-slate-500 font-medium">Administrator</p>
+                    </div>
+                )}
+
                 <Button
                     variant="ghost"
                     className={cn("w-full justify-start gap-3 text-slate-600 hover:text-red-600 hover:bg-red-50", collapsed && "px-0 justify-center")}

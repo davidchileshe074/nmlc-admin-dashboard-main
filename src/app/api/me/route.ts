@@ -14,6 +14,7 @@ export async function GET() {
                 authenticated: true,
                 userId: user.$id,
                 email: user.email,
+                name: user.name,
                 isAdmin: true,
             });
         } catch {
@@ -21,6 +22,7 @@ export async function GET() {
                 authenticated: true,
                 userId: user.$id,
                 email: user.email,
+                name: user.name,
                 isAdmin: false,
             });
         }
