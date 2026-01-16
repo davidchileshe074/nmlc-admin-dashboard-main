@@ -343,7 +343,7 @@ export default function AccessCodesPage() {
                                                 <StudentNameDisplay userId={code.usedByUserId} />
                                             </TableCell>
                                             <TableCell className="text-xs text-slate-400 italic">
-                                                {new Date(code.$createdAt).toLocaleDateString()}
+                                                {new Date(code.createdAt).toLocaleDateString()}
                                             </TableCell>
                                         </TableRow>
                                     ))
@@ -357,7 +357,7 @@ export default function AccessCodesPage() {
     );
 }
 
-function StudentNameDisplay({ userId }: { userId?: string }) {
+function StudentNameDisplay({ userId }: { userId?: string | null }) {
     const [name, setName] = useState<string>('');
     const [loading, setLoading] = useState(false);
 

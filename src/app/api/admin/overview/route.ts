@@ -26,11 +26,11 @@ export async function GET() {
 
         // 1. Fetch counts in parallel - Use optimized select for counts
         const [students, activeSubs, expiredSubs, content, usedCodes] = await Promise.all([
-            adminClient.databases.listDocuments(SERVER_CONFIG.databaseId, SERVER_CONFIG.collections.profiles, [Query.limit(1), Query.select([])]),
-            adminClient.databases.listDocuments(SERVER_CONFIG.databaseId, SERVER_CONFIG.collections.subscriptions, [Query.equal('status', 'ACTIVE'), Query.limit(1), Query.select([])]),
-            adminClient.databases.listDocuments(SERVER_CONFIG.databaseId, SERVER_CONFIG.collections.subscriptions, [Query.equal('status', 'EXPIRED'), Query.limit(1), Query.select([])]),
-            adminClient.databases.listDocuments(SERVER_CONFIG.databaseId, SERVER_CONFIG.collections.content, [Query.limit(1), Query.select([])]),
-            adminClient.databases.listDocuments(SERVER_CONFIG.databaseId, SERVER_CONFIG.collections.accessCodes, [Query.equal('isUsed', true), Query.limit(1), Query.select([])]),
+            adminClient.databases.listDocuments(SERVER_CONFIG.databaseId, SERVER_CONFIG.collections.profiles, [Query.limit(1), Query.select(['$id'])]),
+            adminClient.databases.listDocuments(SERVER_CONFIG.databaseId, SERVER_CONFIG.collections.subscriptions, [Query.equal('status', 'ACTIVE'), Query.limit(1), Query.select(['$id'])]),
+            adminClient.databases.listDocuments(SERVER_CONFIG.databaseId, SERVER_CONFIG.collections.subscriptions, [Query.equal('status', 'EXPIRED'), Query.limit(1), Query.select(['$id'])]),
+            adminClient.databases.listDocuments(SERVER_CONFIG.databaseId, SERVER_CONFIG.collections.content, [Query.limit(1), Query.select(['$id'])]),
+            adminClient.databases.listDocuments(SERVER_CONFIG.databaseId, SERVER_CONFIG.collections.accessCodes, [Query.equal('isUsed', true), Query.limit(1), Query.select(['$id'])]),
         ]);
 
         // 2. Fetch recent activity (Recent 5 items from each)
