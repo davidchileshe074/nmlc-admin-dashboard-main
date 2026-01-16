@@ -38,8 +38,13 @@ export default function AccessCodesPage() {
 
     // Generator form states
     const [duration, setDuration] = useState(30);
-    const [quantity, setQuantity] = useState(10);
+    // const [quantity, setQuantity] = useState(1); // implicit
     const [prefix, setPrefix] = useState('NLC-');
+
+    // Search states
+    const [searchQuery, setSearchQuery] = useState('');
+    const [searchResults, setSearchResults] = useState<any[]>([]); // Using any for brevity, or partial Profile
+    const [selectedStudent, setSelectedStudent] = useState<any | null>(null);
 
     const fetchCodes = async () => {
         setLoading(true);
@@ -60,18 +65,50 @@ export default function AccessCodesPage() {
         fetchCodes();
     }, [usedFilter]);
 
+    // Debounced search / initial load
+    useEffect(() => {
+        const timer = setTimeout(async () => {
+            try {
+                // Fetch defaults even if empty to show "dropdown" list
+                const res = await fetch(`/api/admin/students?search=${searchQuery}&limit=10`);
+                const data = await res.json();
+                setSearchResults(data.students || []);
+            } catch (err) {
+                console.error(err);
+            }
+        }, 300);
+        return () => clearTimeout(timer);
+    }, [searchQuery]);
+
     const handleGenerate = async (e: React.FormEvent) => {
         e.preventDefault();
+        if (!selectedStudent) return;
+
+        // Block if subscription is active
+        if (selectedStudent.subscription?.status === 'ACTIVE') {
+            alert("This student already has an active subscription.");
+            return;
+        }
+
         setGenerating(true);
         try {
             const res = await fetch('/api/admin/accessCodes', {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ durationDays: duration, quantity, prefix }),
+                body: JSON.stringify({
+                    durationDays: duration,
+                    quantity: 1,
+                    prefix,
+                    userId: selectedStudent.$id
+                }),
             });
+
             if (res.ok) {
                 fetchCodes();
-                alert('Codes generated successfully!');
+                alert(`Code generated successfully for ${selectedStudent.fullName}!`);
+                setSelectedStudent(null);
+                setSearchQuery('');
+                // Refresh student search to update their status potentially
             } else {
                 alert('Failed to generate codes');
             }
@@ -81,6 +118,8 @@ export default function AccessCodesPage() {
             setGenerating(false);
         }
     };
+
+    const isSubscriptionActive = selectedStudent?.subscription?.status === 'ACTIVE';
 
     const handleExport = () => {
         const params = new URLSearchParams();
@@ -109,11 +148,92 @@ export default function AccessCodesPage() {
                     <CardHeader>
                         <CardTitle className="text-lg flex items-center gap-2">
                             <Plus className="w-5 h-5 text-blue-600" />
-                            Generate Codes
+                            Generate Code
                         </CardTitle>
                     </CardHeader>
                     <CardContent>
                         <form onSubmit={handleGenerate} className="space-y-4">
+                            <div className="space-y-2 max-h-[300px] relative">
+                                <label className="text-sm font-medium">Select Student *</label>
+                                {selectedStudent ? (
+                                    <div className="space-y-2">
+                                        <div className={cn(
+                                            "flex items-center justify-between p-2 border rounded-md",
+                                            isSubscriptionActive ? "bg-amber-50 border-amber-200" : "bg-blue-50 border-blue-200"
+                                        )}>
+                                            <div className="mr-2 overflow-hidden flex-1">
+                                                <div className="flex items-center gap-2">
+                                                    <p className="font-bold text-sm truncate">{selectedStudent.fullName}</p>
+                                                    {isSubscriptionActive && (
+                                                        <span className="text-[10px] bg-green-100 text-green-700 px-1.5 py-0.5 rounded-full font-bold">
+                                                            ACTIVE SUB
+                                                        </span>
+                                                    )}
+                                                </div>
+                                                <p className="text-xs text-slate-500 truncate">{selectedStudent.email}</p>
+                                            </div>
+                                            <Button
+                                                type="button"
+                                                variant="ghost"
+                                                size="icon"
+                                                className="h-6 w-6 text-slate-400 hover:text-red-500"
+                                                onClick={() => setSelectedStudent(null)}
+                                            >
+                                                <XCircle className="w-4 h-4" />
+                                            </Button>
+                                        </div>
+                                        {isSubscriptionActive && (
+                                            <div className="text-xs text-amber-600 font-medium px-1">
+                                                ⚠ Valid subscription exists. Code generation disabled.
+                                            </div>
+                                        )}
+                                    </div>
+                                ) : (
+                                    <div className="relative">
+                                        <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400 w-3.5 h-3.5" />
+                                        <Input
+                                            placeholder="Search name..."
+                                            className="pl-9"
+                                            value={searchQuery}
+                                            onChange={(e) => setSearchQuery(e.target.value)}
+                                            onFocus={() => {
+                                                if (searchResults.length === 0) setSearchQuery(''); // Trigger fetch
+                                            }}
+                                        />
+                                        {searchResults.length > 0 && (
+                                            <div className="absolute top-full left-0 right-0 mt-1 bg-white border border-slate-200 rounded-md shadow-lg z-10 max-h-60 overflow-y-auto">
+                                                {searchResults.map((s) => (
+                                                    <button
+                                                        key={s.$id}
+                                                        type="button"
+                                                        // We allow selecting them to see the warning, but visually indicate it
+                                                        className={cn(
+                                                            "w-full text-left px-3 py-2 text-sm border-b border-slate-50 last:border-none flex items-center justify-between group",
+                                                            s.subscription?.status === 'ACTIVE' ? "bg-slate-50" : "hover:bg-blue-50"
+                                                        )}
+                                                        onClick={() => {
+                                                            setSelectedStudent(s);
+                                                            setSearchQuery('');
+                                                            setSearchResults([]);
+                                                        }}
+                                                    >
+                                                        <div>
+                                                            <p className="font-medium text-slate-800">{s.fullName}</p>
+                                                            <p className="text-xs text-slate-500">{s.email}</p>
+                                                        </div>
+                                                        {s.subscription?.status === 'ACTIVE' && (
+                                                            <span className="text-[10px] bg-green-100 text-green-700 px-1.5 py-0.5 rounded-full font-bold">
+                                                                ACTIVE
+                                                            </span>
+                                                        )}
+                                                    </button>
+                                                ))}
+                                            </div>
+                                        )}
+                                    </div>
+                                )}
+                            </div>
+
                             <div className="space-y-2">
                                 <label className="text-sm font-medium">Duration (Days)</label>
                                 <select className="flex h-10 w-full rounded-md border border-slate-200 bg-white px-3 py-2 text-sm" value={duration} onChange={e => setDuration(parseInt(e.target.value))}>
@@ -124,17 +244,10 @@ export default function AccessCodesPage() {
                                     <option value={365}>1 Year</option>
                                 </select>
                             </div>
-                            <div className="space-y-2">
-                                <label className="text-sm font-medium">Quantity (1-500)</label>
-                                <Input type="number" min={1} max={500} value={quantity} onChange={e => setQuantity(parseInt(e.target.value))} />
-                            </div>
-                            <div className="space-y-2">
-                                <label className="text-sm font-medium">Prefix</label>
-                                <Input placeholder="NLC-" value={prefix} onChange={e => setPrefix(e.target.value)} />
-                            </div>
-                            <Button type="submit" className="w-full" disabled={generating}>
+
+                            <Button type="submit" className="w-full" disabled={generating || !selectedStudent || isSubscriptionActive}>
                                 {generating ? <Loader2 className="w-4 h-4 animate-spin mr-2" /> : null}
-                                Generate Codes
+                                Generate & Assign
                             </Button>
                         </form>
                     </CardContent>
