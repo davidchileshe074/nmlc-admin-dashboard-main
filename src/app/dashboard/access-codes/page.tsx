@@ -149,26 +149,27 @@ export default function AccessCodesPage() {
     };
 
     return (
-        <div className="space-y-8">
+        <div className="space-y-6 lg:space-y-8">
             <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
                 {/* ... Header ... */}
                 <div>
-                    <h1 className="text-3xl font-bold text-slate-900 tracking-tight">Access Codes</h1>
-                    <p className="text-slate-500 mt-1">Generate and manage subscription redemption codes.</p>
+                    <h1 className="text-2xl lg:text-3xl font-bold text-slate-900 tracking-tight">Access Codes</h1>
+                    <p className="text-slate-500 mt-1 text-sm lg:text-base">Generate and manage subscription redemption codes.</p>
                 </div>
                 <div className="flex items-center gap-2">
-                    <Button variant="outline" onClick={handleExport} className="gap-2">
+                    <Button variant="outline" onClick={handleExport} className="gap-2 text-sm">
                         <Download className="w-4 h-4" />
-                        Export CSV
+                        <span className="hidden sm:inline">Export CSV</span>
+                        <span className="sm:hidden">Export</span>
                     </Button>
                 </div>
             </div>
 
-            <div className="grid grid-cols-1 lg:grid-cols-4 gap-8">
+            <div className="grid grid-cols-1 lg:grid-cols-4 gap-6 lg:gap-8">
                 {/* Generator Form */}
                 <Card className="lg:col-span-1 border-none shadow-sm h-fit">
                     <CardHeader>
-                        <CardTitle className="text-lg flex items-center gap-2">
+                        <CardTitle className="text-base lg:text-lg flex items-center gap-2">
                             <Plus className="w-5 h-5 text-blue-600" />
                             Generate Code
                         </CardTitle>
@@ -276,10 +277,10 @@ export default function AccessCodesPage() {
 
                 {/* Codes Table */}
                 <Card className="lg:col-span-3 border-none shadow-sm">
-                    <CardHeader className="bg-slate-50 border-b border-slate-100 p-4">
-                        <div className="flex items-center justify-between">
-                            <div className="flex items-center gap-4">
-                                <select className="flex h-9 rounded-md border border-slate-200 bg-white px-3 py-1 text-xs font-medium" value={usedFilter} onChange={e => setUsedFilter(e.target.value)}>
+                    <CardHeader className="bg-slate-50 border-b border-slate-100 p-3 lg:p-4">
+                        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+                            <div className="flex items-center gap-2 lg:gap-4">
+                                <select className="flex h-9 rounded-md border border-slate-200 bg-white px-2 lg:px-3 py-1 text-xs font-medium" value={usedFilter} onChange={e => setUsedFilter(e.target.value)}>
                                     <option value="all">All Codes</option>
                                     <option value="false">Unused Only</option>
                                     <option value="true">Used Only</option>
@@ -291,65 +292,67 @@ export default function AccessCodesPage() {
                         </div>
                     </CardHeader>
                     <CardContent className="p-0">
-                        <Table>
-                            <TableHeader>
-                                <TableRow>
-                                    <TableHead>Code</TableHead>
-                                    <TableHead>Duration</TableHead>
-                                    <TableHead>Status</TableHead>
-                                    <TableHead>Redeemed By</TableHead>
-                                    <TableHead>Created</TableHead>
-                                </TableRow>
-                            </TableHeader>
-                            <TableBody>
-                                {loading && !generating ? (
+                        <div className="overflow-x-auto">
+                            <Table>
+                                <TableHeader>
                                     <TableRow>
-                                        <TableCell colSpan={5} className="h-48 text-center">
-                                            <Loader2 className="w-8 h-8 text-blue-600 animate-spin mx-auto" />
-                                        </TableCell>
+                                        <TableHead className="whitespace-nowrap">Code</TableHead>
+                                        <TableHead className="whitespace-nowrap">Duration</TableHead>
+                                        <TableHead className="whitespace-nowrap">Status</TableHead>
+                                        <TableHead className="whitespace-nowrap">Redeemed By</TableHead>
+                                        <TableHead className="whitespace-nowrap">Created</TableHead>
                                     </TableRow>
-                                ) : codes.length === 0 ? (
-                                    <TableRow>
-                                        <TableCell colSpan={5} className="h-48 text-center text-slate-500">
-                                            No codes found. Generate some!
-                                        </TableCell>
-                                    </TableRow>
-                                ) : (
-                                    codes.map((code) => (
-                                        <TableRow key={code.$id}>
-                                            <TableCell>
-                                                <div className="flex items-center gap-2">
-                                                    <div className="p-1.5 bg-blue-50 text-blue-600 rounded">
-                                                        <Ticket className="w-4 h-4" />
-                                                    </div>
-                                                    <span className="font-mono font-bold text-slate-900">{code.code}</span>
-                                                </div>
-                                            </TableCell>
-                                            <TableCell className="text-sm font-medium">
-                                                {code.durationDays} Days
-                                            </TableCell>
-                                            <TableCell>
-                                                {code.isUsed ? (
-                                                    <span className="inline-flex items-center gap-1.5 px-2 py-0.5 rounded-full bg-slate-100 text-slate-600 text-[10px] font-bold">
-                                                        REDEEMED
-                                                    </span>
-                                                ) : (
-                                                    <span className="inline-flex items-center gap-1.5 px-2 py-0.5 rounded-full bg-green-100 text-green-700 text-[10px] font-bold">
-                                                        AVAILABLE
-                                                    </span>
-                                                )}
-                                            </TableCell>
-                                            <TableCell>
-                                                <StudentNameDisplay userId={code.usedByUserId} />
-                                            </TableCell>
-                                            <TableCell className="text-xs text-slate-400 italic">
-                                                {new Date(code.createdAt).toLocaleDateString()}
+                                </TableHeader>
+                                <TableBody>
+                                    {loading && !generating ? (
+                                        <TableRow>
+                                            <TableCell colSpan={5} className="h-48 text-center">
+                                                <Loader2 className="w-8 h-8 text-blue-600 animate-spin mx-auto" />
                                             </TableCell>
                                         </TableRow>
-                                    ))
-                                )}
-                            </TableBody>
-                        </Table>
+                                    ) : codes.length === 0 ? (
+                                        <TableRow>
+                                            <TableCell colSpan={5} className="h-48 text-center text-slate-500">
+                                                No codes found. Generate some!
+                                            </TableCell>
+                                        </TableRow>
+                                    ) : (
+                                        codes.map((code) => (
+                                            <TableRow key={code.$id}>
+                                                <TableCell>
+                                                    <div className="flex items-center gap-2">
+                                                        <div className="p-1.5 bg-blue-50 text-blue-600 rounded">
+                                                            <Ticket className="w-4 h-4" />
+                                                        </div>
+                                                        <span className="font-mono font-bold text-slate-900 text-xs lg:text-sm">{code.code}</span>
+                                                    </div>
+                                                </TableCell>
+                                                <TableCell className="text-xs lg:text-sm font-medium whitespace-nowrap">
+                                                    {code.durationDays} Days
+                                                </TableCell>
+                                                <TableCell>
+                                                    {code.isUsed ? (
+                                                        <span className="inline-flex items-center gap-1.5 px-2 py-0.5 rounded-full bg-slate-100 text-slate-600 text-[10px] font-bold whitespace-nowrap">
+                                                            REDEEMED
+                                                        </span>
+                                                    ) : (
+                                                        <span className="inline-flex items-center gap-1.5 px-2 py-0.5 rounded-full bg-green-100 text-green-700 text-[10px] font-bold whitespace-nowrap">
+                                                            AVAILABLE
+                                                        </span>
+                                                    )}
+                                                </TableCell>
+                                                <TableCell>
+                                                    <StudentNameDisplay userId={code.usedByUserId} />
+                                                </TableCell>
+                                                <TableCell className="text-xs text-slate-400 italic whitespace-nowrap">
+                                                    {new Date(code.createdAt).toLocaleDateString()}
+                                                </TableCell>
+                                            </TableRow>
+                                        ))
+                                    )}
+                                </TableBody>
+                            </Table>
+                        </div>
                     </CardContent>
                 </Card>
             </div>

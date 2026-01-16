@@ -1,6 +1,6 @@
 "use client";
 
-import { Bell, Search, User, LogOut, Settings, ChevronDown, X, Filter } from 'lucide-react';
+import { Bell, Search, User, LogOut, Settings, ChevronDown, X, Filter, Menu } from 'lucide-react';
 import { Input, Button } from '@/components/ui/base';
 import { useEffect, useState, useRef } from 'react';
 import { useRouter } from 'next/navigation';
@@ -25,7 +25,7 @@ interface Notification {
     readAt?: string;
 }
 
-export function Header() {
+export function Header({ onMenuClick }: { onMenuClick?: () => void }) {
     const router = useRouter();
     const [user, setUser] = useState<{ email: string; name: string } | null>(null);
     const [searchQuery, setSearchQuery] = useState('');
@@ -248,60 +248,70 @@ export function Header() {
     };
 
     return (
-        <header className="h-16 border-b border-slate-200 bg-white px-8 flex items-center justify-between sticky top-0 z-10 shadow-sm">
-            {/* Search */}
-            <div className="flex items-center w-full max-w-md relative" ref={searchRef}>
-                <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400 w-4 h-4" />
-                <Input
-                    placeholder="Search students, content..."
-                    className="pl-10 bg-slate-50 border-transparent focus:bg-white focus:border-slate-200"
-                    value={searchQuery}
-                    onChange={(e) => setSearchQuery(e.target.value)}
-                    onFocus={() => searchResults.length > 0 && setShowSearchResults(true)}
-                />
-                {searchQuery && (
-                    <button
-                        onClick={() => {
-                            setSearchQuery('');
-                            setShowSearchResults(false);
-                        }}
-                        className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600"
-                    >
-                        <X className="w-4 h-4" />
-                    </button>
-                )}
+        <header className="h-16 border-b border-slate-200 bg-white px-4 lg:px-8 flex items-center justify-between sticky top-0 z-10 shadow-sm">
+            <div className="flex items-center gap-3 flex-1">
+                {/* Mobile Menu Button */}
+                <button
+                    onClick={onMenuClick}
+                    className="lg:hidden p-2 hover:bg-slate-100 rounded-lg text-slate-600"
+                >
+                    <Menu className="w-5 h-5" />
+                </button>
 
-                {/* Search Results Dropdown */}
-                {showSearchResults && (
-                    <div className="absolute top-full left-0 right-0 mt-2 bg-white border border-slate-200 rounded-lg shadow-lg max-h-96 overflow-y-auto">
-                        {searching ? (
-                            <div className="p-4 text-center text-slate-500">Searching...</div>
-                        ) : searchResults.length > 0 ? (
-                            <div className="py-2">
-                                {searchResults.map((result) => (
-                                    <button
-                                        key={result.id}
-                                        onClick={() => handleSearchResultClick(result.url)}
-                                        className="w-full px-4 py-3 hover:bg-slate-50 text-left border-b border-slate-100 last:border-none"
-                                    >
-                                        <div className="flex items-center gap-3">
-                                            <div className={`w-8 h-8 rounded-full flex items-center justify-center ${result.type === 'student' ? 'bg-blue-100 text-blue-600' : 'bg-purple-100 text-purple-600'
-                                                }`}>
-                                                {result.type === 'student' ? <User className="w-4 h-4" /> : <Search className="w-4 h-4" />}
+                {/* Search */}
+                <div className="hidden sm:flex items-center w-full max-w-md relative" ref={searchRef}>
+                    <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400 w-4 h-4" />
+                    <Input
+                        placeholder="Search students, content..."
+                        className="pl-10 bg-slate-50 border-transparent focus:bg-white focus:border-slate-200"
+                        value={searchQuery}
+                        onChange={(e) => setSearchQuery(e.target.value)}
+                        onFocus={() => searchResults.length > 0 && setShowSearchResults(true)}
+                    />
+                    {searchQuery && (
+                        <button
+                            onClick={() => {
+                                setSearchQuery('');
+                                setShowSearchResults(false);
+                            }}
+                            className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600"
+                        >
+                            <X className="w-4 h-4" />
+                        </button>
+                    )}
+
+                    {/* Search Results Dropdown */}
+                    {showSearchResults && (
+                        <div className="absolute top-full left-0 right-0 mt-2 bg-white border border-slate-200 rounded-lg shadow-lg max-h-96 overflow-y-auto">
+                            {searching ? (
+                                <div className="p-4 text-center text-slate-500">Searching...</div>
+                            ) : searchResults.length > 0 ? (
+                                <div className="py-2">
+                                    {searchResults.map((result) => (
+                                        <button
+                                            key={result.id}
+                                            onClick={() => handleSearchResultClick(result.url)}
+                                            className="w-full px-4 py-3 hover:bg-slate-50 text-left border-b border-slate-100 last:border-none"
+                                        >
+                                            <div className="flex items-center gap-3">
+                                                <div className={`w-8 h-8 rounded-full flex items-center justify-center ${result.type === 'student' ? 'bg-blue-100 text-blue-600' : 'bg-purple-100 text-purple-600'
+                                                    }`}>
+                                                    {result.type === 'student' ? <User className="w-4 h-4" /> : <Search className="w-4 h-4" />}
+                                                </div>
+                                                <div className="flex-1">
+                                                    <p className="text-sm font-medium text-slate-900">{result.title}</p>
+                                                    <p className="text-xs text-slate-500">{result.subtitle}</p>
+                                                </div>
                                             </div>
-                                            <div className="flex-1">
-                                                <p className="text-sm font-medium text-slate-900">{result.title}</p>
-                                                <p className="text-xs text-slate-500">{result.subtitle}</p>
-                                            </div>
-                                        </div>
-                                    </button>
-                                ))}
-                            </div>
-                        ) : (
-                            <div className="p-4 text-center text-slate-500">No results found</div>
-                        )}
-                    </div>
-                )}
+                                        </button>
+                                    ))}
+                                </div>
+                            ) : (
+                                <div className="p-4 text-center text-slate-500">No results found</div>
+                            )}
+                        </div>
+                    )}
+                </div>
             </div>
 
             <div className="flex items-center gap-4">
