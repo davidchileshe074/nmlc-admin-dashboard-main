@@ -28,7 +28,9 @@ import {
     Filter,
     RefreshCw,
     Search,
-    ChevronDown
+    ChevronDown,
+    Trash2,
+    X
 } from 'lucide-react';
 import { AccessCode } from '@/types';
 
@@ -36,6 +38,9 @@ export default function AccessCodesPage() {
     const [codes, setCodes] = useState<AccessCode[]>([]);
     const [loading, setLoading] = useState(true);
     const [generating, setGenerating] = useState(false);
+    const [showDeleteModal, setShowDeleteModal] = useState(false);
+    const [codeToDelete, setCodeToDelete] = useState<{ id: string; code: string } | null>(null);
+    const [deleting, setDeleting] = useState(false);
     const [usedFilter, setUsedFilter] = useState('all');
 
     // Generator form states
@@ -146,6 +151,39 @@ export default function AccessCodesPage() {
         const params = new URLSearchParams();
         if (usedFilter !== 'all') params.append('used', usedFilter);
         window.location.href = `/api/admin/exportAccessCodes?${params}`;
+    };
+
+    const handleDeleteClick = (codeId: string, code: string) => {
+        setCodeToDelete({ id: codeId, code });
+        setShowDeleteModal(true);
+    };
+
+    const handleConfirmDelete = async () => {
+        if (!codeToDelete) return;
+
+        setDeleting(true);
+        try {
+            const res = await fetch('/api/admin/deleteAccessCode', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ codeId: codeToDelete.id }),
+            });
+
+            if (res.ok) {
+                toast.success('Access code deleted successfully');
+                fetchCodes();
+                setShowDeleteModal(false);
+                setCodeToDelete(null);
+            } else {
+                const data = await res.json();
+                toast.error(data.error || 'Failed to delete access code');
+            }
+        } catch (err) {
+            console.error(err);
+            toast.error('An error occurred during deletion');
+        } finally {
+            setDeleting(false);
+        }
     };
 
     return (
@@ -301,18 +339,19 @@ export default function AccessCodesPage() {
                                         <TableHead className="whitespace-nowrap">Status</TableHead>
                                         <TableHead className="whitespace-nowrap">Redeemed By</TableHead>
                                         <TableHead className="whitespace-nowrap">Created</TableHead>
+                                        <TableHead className="text-right whitespace-nowrap">Actions</TableHead>
                                     </TableRow>
                                 </TableHeader>
                                 <TableBody>
                                     {loading && !generating ? (
                                         <TableRow>
-                                            <TableCell colSpan={5} className="h-48 text-center">
+                                            <TableCell colSpan={6} className="h-48 text-center">
                                                 <Loader2 className="w-8 h-8 text-blue-600 animate-spin mx-auto" />
                                             </TableCell>
                                         </TableRow>
                                     ) : codes.length === 0 ? (
                                         <TableRow>
-                                            <TableCell colSpan={5} className="h-48 text-center text-slate-500">
+                                            <TableCell colSpan={6} className="h-48 text-center text-slate-500">
                                                 No codes found. Generate some!
                                             </TableCell>
                                         </TableRow>
@@ -342,10 +381,36 @@ export default function AccessCodesPage() {
                                                     )}
                                                 </TableCell>
                                                 <TableCell>
-                                                    <StudentNameDisplay userId={code.usedByUserId} />
+                                                    {code.studentName ? (
+                                                        <span className="text-xs text-slate-700 font-medium">{code.studentName}</span>
+                                                    ) : code.usedByUserId ? (
+                                                        <span className="text-xs text-slate-500 font-mono">{code.usedByUserId}</span>
+                                                    ) : (
+                                                        <span className="text-xs text-slate-500 font-mono">--</span>
+                                                    )}
                                                 </TableCell>
                                                 <TableCell className="text-xs text-slate-400 italic whitespace-nowrap">
-                                                    {new Date(code.createdAt).toLocaleDateString()}
+                                                    {(() => {
+                                                        const dateStr = (code as any).$createdAt || code.createdAt;
+                                                        if (!dateStr) return '--';
+                                                        const date = new Date(dateStr);
+                                                        if (isNaN(date.getTime())) return '--';
+                                                        return date.toLocaleDateString('en-US', {
+                                                            year: 'numeric',
+                                                            month: 'short',
+                                                            day: 'numeric'
+                                                        });
+                                                    })()}
+                                                </TableCell>
+                                                <TableCell className="text-right">
+                                                    <Button
+                                                        variant="ghost"
+                                                        size="icon"
+                                                        onClick={() => handleDeleteClick(code.$id, code.code)}
+                                                        className="h-8 w-8"
+                                                    >
+                                                        <Trash2 className="w-4 h-4 text-slate-400 hover:text-red-500" />
+                                                    </Button>
                                                 </TableCell>
                                             </TableRow>
                                         ))
@@ -356,47 +421,75 @@ export default function AccessCodesPage() {
                     </CardContent>
                 </Card>
             </div>
+
+            {/* Delete Confirmation Modal */}
+            {showDeleteModal && codeToDelete && (
+                <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/40 backdrop-blur-sm animate-in fade-in duration-200">
+                    <Card className="w-full max-w-md shadow-2xl animate-in zoom-in-95 duration-200">
+                        <CardHeader className="flex flex-row items-center justify-between pb-4">
+                            <CardTitle className="flex items-center gap-2 text-red-600">
+                                <Trash2 className="w-5 h-5" />
+                                Confirm Deletion
+                            </CardTitle>
+                            <Button
+                                variant="ghost"
+                                size="icon"
+                                onClick={() => {
+                                    setShowDeleteModal(false);
+                                    setCodeToDelete(null);
+                                }}
+                                disabled={deleting}
+                            >
+                                <X className="w-5 h-5" />
+                            </Button>
+                        </CardHeader>
+                        <CardContent className="space-y-4">
+                            <p className="text-slate-600">
+                                Are you sure you want to delete access code{' '}
+                                <span className="font-mono font-bold text-slate-900">{codeToDelete.code}</span>?
+                            </p>
+                            <p className="text-sm text-red-600 bg-red-50 border border-red-200 rounded-md p-3">
+                                ⚠️ This action cannot be undone. The access code will be permanently removed.
+                            </p>
+                            <div className="flex justify-end gap-3 pt-2">
+                                <Button
+                                    type="button"
+                                    variant="ghost"
+                                    size="sm"
+                                    onClick={() => {
+                                        setShowDeleteModal(false);
+                                        setCodeToDelete(null);
+                                    }}
+                                    disabled={deleting}
+                                >
+                                    Cancel
+                                </Button>
+                                <Button
+                                    type="button"
+                                    size="sm"
+                                    onClick={handleConfirmDelete}
+                                    disabled={deleting}
+                                    className="bg-red-600 hover:bg-red-700 text-white min-w-[100px]"
+                                >
+                                    {deleting ? (
+                                        <>
+                                            <Loader2 className="w-4 h-4 animate-spin mr-2" />
+                                            Deleting...
+                                        </>
+                                    ) : (
+                                        <>
+                                            <Trash2 className="w-4 h-4 mr-2" />
+                                            Delete
+                                        </>
+                                    )}
+                                </Button>
+                            </div>
+                        </CardContent>
+                    </Card>
+                </div>
+            )}
         </div>
     );
-}
-
-function StudentNameDisplay({ userId }: { userId?: string | null }) {
-    const [name, setName] = useState<string>('');
-    const [loading, setLoading] = useState(false);
-
-    useEffect(() => {
-        if (!userId) return;
-
-        const fetchName = async () => {
-            setLoading(true);
-            try {
-                // Try to find the student. Assuming search works or we have an endpoint.
-                // If search doesn't support ID, this might fail to find exact match.
-                // But for now it's our best bet without a new ID-specific endpoint.
-                // Improving: Only search if valid ID. 
-                const res = await fetch(`/api/admin/students?search=${userId}`);
-                const data = await res.json();
-                if (data.students && data.students.length > 0) {
-                    // Look for exact ID match just in case
-                    const student = data.students.find((s: any) => s.$id === userId) || data.students[0];
-                    setName(student.fullName);
-                } else {
-                    setName(userId); // Fallback to ID
-                }
-            } catch (e) {
-                setName(userId); // Fallback
-            } finally {
-                setLoading(false);
-            }
-        };
-
-        fetchName();
-    }, [userId]);
-
-    if (!userId) return <span className="text-xs text-slate-500 font-mono">--</span>;
-    if (loading) return <span className="text-xs text-slate-400 animate-pulse">Loading...</span>;
-
-    return <span className="text-xs text-slate-700 font-medium">{name}</span>;
 }
 
 function cn(...inputs: any[]) {

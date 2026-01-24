@@ -46,6 +46,7 @@ export async function POST(request: Request) {
             {
                 userId,
                 email,
+                role: 'admin', // Required attribute for admins collection
                 createdAt: new Date().toISOString()
             }
         );

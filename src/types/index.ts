@@ -56,6 +56,7 @@ export interface AccessCode {
   usedByUserId: string | null;
   usedAt: string | null;
   createdAt: string;
+  studentName?: string | null; // Enriched from API
 }
 
 export interface Admin {

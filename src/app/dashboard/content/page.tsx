@@ -122,6 +122,8 @@ export default function ContentPage() {
     const [filterProgram, setFilterProgram] = useState('ALL');
     const [showUploadModal, setShowUploadModal] = useState(false);
     const [uploading, setUploading] = useState(false);
+    const [showDeleteModal, setShowDeleteModal] = useState(false);
+    const [itemToDelete, setItemToDelete] = useState<{ contentId: string; storageFileId: string; title: string } | null>(null);
 
     // Form states
     const [title, setTitle] = useState('');
@@ -223,67 +225,99 @@ export default function ContentPage() {
         }
     };
 
-    const handleDelete = async (contentId: string, storageFileId: string) => {
-        if (!confirm('Are you sure you want to delete this content? This cannot be undone.')) return;
+    const handleDeleteClick = (contentId: string, storageFileId: string, title: string) => {
+        setItemToDelete({ contentId, storageFileId, title });
+        setShowDeleteModal(true);
+    };
 
+    const [deleting, setDeleting] = useState(false);
+
+    const handleConfirmDelete = async () => {
+        if (!itemToDelete) return;
+
+        setDeleting(true);
         try {
             const res = await fetch('/api/admin/deleteContent', {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ contentId, storageFileId }),
+                body: JSON.stringify({ contentId: itemToDelete.contentId, storageFileId: itemToDelete.storageFileId }),
             });
-            
+
             if (res.ok) {
                 toast.success('Content deleted successfully');
                 fetchContent();
+                setShowDeleteModal(false);
+                setItemToDelete(null);
             } else {
                 toast.error('Failed to delete content');
             }
         } catch (err) {
             console.error(err);
             toast.error('An error occurred during deletion');
+        } finally {
+            setDeleting(false);
         }
     };
 
     return (
-        <div className="space-y-6">
-            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
-                <div>
-                    <h1 className="text-3xl font-bold text-slate-900 tracking-tight">Library Catalog</h1>
-                    <p className="text-slate-500 mt-1">Manage educational materials, past papers, and marking keys.</p>
+        <div className="space-y-6 pb-20 sm:pb-0">
+            <div className="flex flex-col gap-4">
+                <div className="flex items-center justify-between gap-4">
+                    <div>
+                        <h1 className="text-xl sm:text-3xl font-bold text-slate-900 tracking-tight">Library Catalog</h1>
+                        <p className="text-slate-500 mt-1 text-xs sm:text-base">Manage educational materials and papers.</p>
+                    </div>
+                    {/* Desktop/Tablet Button */}
+                    <Button
+                        onClick={() => setShowUploadModal(true)}
+                        className="hidden sm:inline-flex gap-2"
+                    >
+                        <Plus className="w-4 h-4" />
+                        Add Content
+                    </Button>
                 </div>
-                <Button onClick={() => setShowUploadModal(true)} className="gap-2">
-                    <Plus className="w-4 h-4" />
-                    Add Content
-                </Button>
             </div>
+
+            {/* Mobile Floating Action Button (FAB) */}
+            <button
+                onClick={() => setShowUploadModal(true)}
+                className="fixed bottom-6 right-6 w-14 h-14 bg-blue-600 text-white rounded-full shadow-2xl flex items-center justify-center z-50 sm:hidden hover:bg-blue-700 active:scale-95 transition-all outline-none ring-offset-2 focus:ring-2 focus:ring-blue-500"
+                aria-label="Add Content"
+            >
+                <Plus className="w-6 h-6" />
+            </button>
 
             <Card className="border-none shadow-sm">
                 <CardHeader className="bg-slate-50 border-b border-slate-100 p-0">
-                    <div className="flex flex-col md:flex-row md:items-center justify-between p-4 gap-4">
-                        <div className="flex bg-slate-200/50 p-1 rounded-lg w-fit">
-                            {[
-                                { id: 'ALL', label: 'All Content' },
-                                { id: 'MEDIA', label: 'Media (PDF/Audio)' },
-                                { id: 'PAST_PAPER', label: 'Past Papers' },
-                                { id: 'MARKING_KEY', label: 'Marking Keys' },
-                            ].map((tab) => (
-                                <button
-                                    key={tab.id}
-                                    onClick={() => setActiveTab(tab.id as any)}
-                                    className={cn(
-                                        "px-4 py-1.5 text-xs font-medium rounded-md transition-all",
-                                        activeTab === tab.id
-                                            ? "bg-white text-blue-600 shadow-sm"
-                                            : "text-slate-600 hover:text-slate-900"
-                                    )}
-                                >
-                                    {tab.label}
-                                </button>
-                            ))}
+                    <div className="flex flex-col gap-4 p-4">
+                        {/* Tabs - Horizontally scrollable on mobile */}
+                        <div className="overflow-x-auto -mx-4 px-4">
+                            <div className="flex bg-slate-200/50 p-1 rounded-lg w-fit min-w-full sm:min-w-0">
+                                {[
+                                    { id: 'ALL', label: 'All' },
+                                    { id: 'MEDIA', label: 'Media' },
+                                    { id: 'PAST_PAPER', label: 'Past Papers' },
+                                    { id: 'MARKING_KEY', label: 'Keys' },
+                                ].map((tab) => (
+                                    <button
+                                        key={tab.id}
+                                        onClick={() => setActiveTab(tab.id as any)}
+                                        className={cn(
+                                            "px-3 sm:px-4 py-1.5 text-xs font-medium rounded-md transition-all whitespace-nowrap",
+                                            activeTab === tab.id
+                                                ? "bg-white text-blue-600 shadow-sm"
+                                                : "text-slate-600 hover:text-slate-900"
+                                        )}
+                                    >
+                                        {tab.label}
+                                    </button>
+                                ))}
+                            </div>
                         </div>
-                        <div className="flex items-center gap-3">
-                            <div className="relative flex-1 md:w-64">
+
+                        {/* Search and Filters */}
+                        <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-3">
+                            <div className="relative flex-1">
                                 <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400 w-4 h-4" />
                                 <Input
                                     placeholder="Search by title..."
@@ -366,7 +400,7 @@ export default function ContentPage() {
                                         </TableCell>
                                         <TableCell className="text-right">
                                             <div className="flex items-center justify-end gap-2">
-                                                <Button variant="ghost" size="icon" onClick={() => handleDelete(item.$id, item.storageFileId)}>
+                                                <Button variant="ghost" size="icon" onClick={() => handleDeleteClick(item.$id, item.storageFileId, item.title)}>
                                                     <Trash2 className="w-4 h-4 text-slate-400 hover:text-red-500" />
                                                 </Button>
                                             </div>
@@ -381,50 +415,50 @@ export default function ContentPage() {
 
             {/* Upload Modal Overlay */}
             {showUploadModal && (
-                <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/40 backdrop-blur-sm animate-in fade-in duration-200">
-                    <Card className="w-full max-w-xl shadow-2xl animate-in zoom-in-95 duration-200">
+                <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/40 backdrop-blur-sm animate-in fade-in duration-200 overflow-y-auto">
+                    <Card className="w-full max-w-xl shadow-2xl animate-in zoom-in-95 duration-200 my-8">
                         <CardHeader className="flex flex-row items-center justify-between border-b border-slate-100 pb-4">
                             <CardTitle>Add New Content</CardTitle>
                             <Button variant="ghost" size="icon" onClick={() => setShowUploadModal(false)}>
                                 <X className="w-5 h-5" />
                             </Button>
                         </CardHeader>
-                        <CardContent className="pt-6">
-                            <form onSubmit={handleUpload} className="space-y-6">
-                                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                                    <div className="space-y-2 md:col-span-2">
+                        <CardContent className="pt-4 sm:pt-6">
+                            <form onSubmit={handleUpload} className="space-y-4 sm:space-y-6">
+                                <div className="grid grid-cols-1 md:grid-cols-2 gap-3 sm:gap-4">
+                                    <div className="space-y-1 sm:space-y-2 md:col-span-2">
                                         <label className="text-sm font-medium">Title *</label>
                                         <Input placeholder="e.g. Introduction to Nursing" value={title} onChange={e => setTitle(e.target.value)} required />
                                     </div>
-                                    <div className="space-y-2 md:col-span-2">
+                                    <div className="space-y-1 sm:space-y-2 md:col-span-2">
                                         <label className="text-sm font-medium">Description</label>
                                         <textarea
-                                            className="flex min-h-[80px] w-full rounded-md border border-slate-200 bg-white px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
-                                            placeholder="Brief summary of the content..."
+                                            className="flex min-h-[60px] sm:min-h-[80px] w-full rounded-md border border-slate-200 bg-white px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+                                            placeholder="Brief summary..."
                                             value={description}
                                             onChange={e => setDescription(e.target.value)}
                                         />
                                     </div>
-                                    <div className="space-y-2">
+                                    <div className="space-y-1 sm:space-y-2">
                                         <label className="text-sm font-medium">Type</label>
-                                        <select className="flex h-10 w-full rounded-md border border-slate-200 bg-white px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500" value={type} onChange={e => setType(e.target.value)}>
-                                            <option value="PDF">PDF Document</option>
-                                            <option value="AUDIO">Audio Lecture</option>
+                                        <select className="flex h-10 w-full rounded-md border border-slate-200 bg-white px-3 py-2 text-sm focus:outline-none" value={type} onChange={e => setType(e.target.value)}>
+                                            <option value="PDF">PDF</option>
+                                            <option value="AUDIO">Audio</option>
                                             <option value="PAST_PAPER">Past Paper</option>
                                             <option value="MARKING_KEY">Marking Key</option>
                                         </select>
                                     </div>
-                                    <div className="space-y-2">
-                                        <label className="text-sm font-medium">Year of Study</label>
-                                        <select className="flex h-10 w-full rounded-md border border-slate-200 bg-white px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500" value={yearOfStudy} onChange={e => setYearOfStudy(e.target.value)}>
+                                    <div className="space-y-1 sm:space-y-2">
+                                        <label className="text-sm font-medium">Year</label>
+                                        <select className="flex h-10 w-full rounded-md border border-slate-200 bg-white px-3 py-2 text-sm focus:outline-none" value={yearOfStudy} onChange={e => setYearOfStudy(e.target.value)}>
                                             <option value="YEAR_1">Year 1</option>
                                             <option value="YEAR_2">Year 2</option>
                                             <option value="YEAR_3">Year 3</option>
                                         </select>
                                     </div>
-                                    <div className="space-y-2">
+                                    <div className="space-y-1 sm:space-y-2">
                                         <label className="text-sm font-medium">Program</label>
-                                        <select className="flex h-10 w-full rounded-md border border-slate-200 bg-white px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500" value={program} onChange={e => setProgram(e.target.value)}>
+                                        <select className="flex h-10 w-full rounded-md border border-slate-200 bg-white px-3 py-2 text-sm focus:outline-none" value={program} onChange={e => setProgram(e.target.value)}>
                                             <option value="RN">RN</option>
                                             <option value="MIDWIFERY">Midwifery</option>
                                             <option value="PUBLIC_HEALTH">Public Health</option>
@@ -433,44 +467,44 @@ export default function ContentPage() {
                                             <option value="PAEDIATRIC">Paediatric</option>
                                         </select>
                                     </div>
-                                    <div className="space-y-2">
-                                        <label className="text-sm font-medium">Course / Subject</label>
+                                    <div className="space-y-1 sm:space-y-2">
+                                        <label className="text-sm font-medium">Subject</label>
                                         <select
-                                            className="flex h-10 w-full rounded-md border border-slate-200 bg-white px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+                                            className="flex h-10 w-full rounded-md border border-slate-200 bg-white px-3 py-2 text-sm focus:outline-none"
                                             value={subject}
                                             onChange={e => setSubject(e.target.value)}
                                             disabled={!availableSubjects.length}
                                         >
-                                            <option value="">Select a Subject...</option>
+                                            <option value="">Select...</option>
                                             {availableSubjects.map((sub: string) => (
                                                 <option key={sub} value={sub}>{sub}</option>
                                             ))}
                                         </select>
                                     </div>
-                                    <div className="space-y-2 md:col-span-2">
+                                    <div className="space-y-1 sm:space-y-2 md:col-span-2">
                                         <label className="text-sm font-medium">File Upload *</label>
                                         <div className={cn(
-                                            "mt-1 flex justify-center px-6 pt-5 pb-6 border-2 border-dashed rounded-lg transition-colors",
+                                            "mt-1 flex justify-center px-4 py-4 sm:px-6 sm:py-5 border-2 border-dashed rounded-lg transition-colors",
                                             file ? "border-green-300 bg-green-50" : "border-slate-300 hover:border-blue-400"
                                         )}>
                                             <div className="space-y-1 text-center">
                                                 {file ? (
                                                     <div className="flex flex-col items-center">
-                                                        <CheckCircle2 className="w-10 h-10 text-green-500 mb-2" />
-                                                        <p className="text-sm font-medium text-green-800">{file.name}</p>
-                                                        <button type="button" onClick={() => setFile(null)} className="text-xs text-red-500 underline mt-1">Remove</button>
+                                                        <CheckCircle2 className="w-8 h-8 text-green-500 mb-1" />
+                                                        <p className="text-xs font-medium text-green-800 truncate max-w-[200px]">{file.name}</p>
+                                                        <button type="button" onClick={() => setFile(null)} className="text-[10px] text-red-500 underline mt-1">Remove</button>
                                                     </div>
                                                 ) : (
                                                     <>
-                                                        <UploadCloud className="mx-auto h-10 w-10 text-slate-400" />
-                                                        <div className="flex text-sm text-slate-600">
-                                                            <label className="relative cursor-pointer bg-white rounded-md font-medium text-blue-600 hover:text-blue-500 focus-within:outline-none">
-                                                                <span>Upload a file</span>
+                                                        <UploadCloud className="mx-auto h-8 w-8 text-slate-400" />
+                                                        <div className="flex text-xs text-slate-600 justify-center">
+                                                            <label className="relative cursor-pointer bg-white rounded-md font-medium text-blue-600 hover:text-blue-500">
+                                                                <span>Upload</span>
                                                                 <input type="file" className="sr-only" onChange={e => setFile(e.target.files?.[0] || null)} />
                                                             </label>
-                                                            <p className="pl-1">or drag and drop</p>
+                                                            <p className="pl-1 hidden sm:block">or drag and drop</p>
                                                         </div>
-                                                        <p className="text-xs text-slate-500">PDF or Audio up to 100MB</p>
+                                                        <p className="text-[10px] text-slate-500">PDF or Audio (Max 100MB)</p>
                                                     </>
                                                 )}
                                             </div>
@@ -479,13 +513,68 @@ export default function ContentPage() {
                                 </div>
 
                                 <div className="flex justify-end gap-3 pt-4 border-t border-slate-100">
-                                    <Button type="button" variant="ghost" onClick={() => setShowUploadModal(false)}>Cancel</Button>
-                                    <Button type="submit" disabled={uploading || !file} className="min-w-[120px]">
+                                    <Button type="button" variant="ghost" size="sm" onClick={() => setShowUploadModal(false)}>Cancel</Button>
+                                    <Button type="submit" size="sm" disabled={uploading || !file} className="min-w-[100px]">
                                         {uploading ? <Loader2 className="w-4 h-4 animate-spin mr-2" /> : null}
-                                        {uploading ? 'Uploading...' : 'Create Content'}
+                                        {uploading ? 'Processing...' : 'Create Content'}
                                     </Button>
                                 </div>
                             </form>
+                        </CardContent>
+                    </Card>
+                </div>
+            )}
+
+            {/* Delete Confirmation Modal */}
+            {showDeleteModal && itemToDelete && (
+                <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/40 backdrop-blur-sm animate-in fade-in duration-200">
+                    <Card className="w-full max-w-md shadow-2xl animate-in zoom-in-95 duration-200">
+                        <CardHeader className="pb-4">
+                            <CardTitle className="flex items-center gap-2 text-red-600">
+                                <Trash2 className="w-5 h-5" />
+                                Confirm Deletion
+                            </CardTitle>
+                        </CardHeader>
+                        <CardContent className="space-y-4">
+                            <p className="text-slate-600">
+                                Are you sure you want to delete <span className="font-semibold text-slate-900">"{itemToDelete.title}"</span>?
+                            </p>
+                            <p className="text-sm text-red-600 bg-red-50 border border-red-200 rounded-md p-3">
+                                ⚠️ This action cannot be undone. The content and associated file will be permanently removed.
+                            </p>
+                            <div className="flex justify-end gap-3 pt-2">
+                                <Button
+                                    type="button"
+                                    variant="ghost"
+                                    size="sm"
+                                    onClick={() => {
+                                        setShowDeleteModal(false);
+                                        setItemToDelete(null);
+                                    }}
+                                    disabled={deleting}
+                                >
+                                    Cancel
+                                </Button>
+                                <Button
+                                    type="button"
+                                    size="sm"
+                                    onClick={handleConfirmDelete}
+                                    disabled={deleting}
+                                    className="bg-red-600 hover:bg-red-700 text-white min-w-[100px]"
+                                >
+                                    {deleting ? (
+                                        <>
+                                            <Loader2 className="w-4 h-4 animate-spin mr-2" />
+                                            Deleting...
+                                        </>
+                                    ) : (
+                                        <>
+                                            <Trash2 className="w-4 h-4 mr-2" />
+                                            Delete
+                                        </>
+                                    )}
+                                </Button>
+                            </div>
                         </CardContent>
                     </Card>
                 </div>

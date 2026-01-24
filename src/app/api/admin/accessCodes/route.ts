@@ -130,7 +130,48 @@ export async function GET(request: Request) {
             queries
         );
 
-        return NextResponse.json(res);
+        // Fetch student names for codes that have been assigned
+        const enrichedDocuments = await Promise.all(
+            res.documents.map(async (code: any) => {
+                if (code.usedByUserId) {
+                    try {
+                        const profile = await adminClient.databases.getDocument(
+                            SERVER_CONFIG.databaseId,
+                            SERVER_CONFIG.collections.profiles,
+                            code.usedByUserId
+                        );
+                        return {
+                            ...code,
+                            studentName: profile.fullName || null
+                        };
+                    } catch (err: any) {
+                        // If profile not found, try to get the user account info as fallback
+                        try {
+                            const user = await adminClient.users.get(code.usedByUserId);
+                            return {
+                                ...code,
+                                studentName: user.name || null
+                            };
+                        } catch (userErr: any) {
+                            // If both profile and user lookup fail, return without student name
+                            return {
+                                ...code,
+                                studentName: null
+                            };
+                        }
+                    }
+                }
+                return {
+                    ...code,
+                    studentName: null
+                };
+            })
+        );
+
+        return NextResponse.json({
+            ...res,
+            documents: enrichedDocuments
+        });
     } catch (error: any) {
         const status = error.message?.includes('Unauthorized') || error.message?.includes('JWT') || error.message?.includes('Expired') ? 401 : (error.status || 500);
         return NextResponse.json({ error: error.message }, { status });
