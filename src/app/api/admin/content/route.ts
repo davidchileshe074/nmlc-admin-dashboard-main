@@ -40,8 +40,20 @@ export async function GET(request: Request) {
 }
 
 export async function POST(request: Request) {
+    console.log('--- POST Upload Content ---');
     try {
         await assertAdmin();
+
+        // 0. Check Environment Variables
+        if (!SERVER_CONFIG.databaseId || !SERVER_CONFIG.bucketId) {
+            console.error('Missing SERVER_CONFIG:', SERVER_CONFIG);
+            return NextResponse.json({ error: 'Server configuration error: Missing Database or Bucket ID' }, { status: 500 });
+        }
+
+        const contentType = request.headers.get('content-type') || '';
+        const contentLength = request.headers.get('content-length');
+        console.log(`Request Content-Type: ${contentType}, Content-Length: ${contentLength}`);
+
         const formData = await request.formData() as unknown as globalThis.FormData;
         const title = formData.get('title') as string;
         const description = formData.get('description') as string;
@@ -51,6 +63,8 @@ export async function POST(request: Request) {
         const subject = formData.get('subject') as string;
         const file = formData.get('file') as File;
 
+        console.log(`Uploading: ${title} (${type}), File: ${file?.name}, Size: ${file?.size} bytes`);
+
         if (!title || !type || !yearOfStudy || !program || !file) {
             return NextResponse.json({ error: 'Missing required fields' }, { status: 400 });
         }
@@ -58,20 +72,20 @@ export async function POST(request: Request) {
         const adminClient = createAdminClient();
 
         // 1. Upload file to storage
-        // Appwrite Node SDK requires a buffer or a stream for file upload
         const arrayBuffer = await file.arrayBuffer();
         const buffer = Buffer.from(arrayBuffer);
-
-        // We need to use InputFile.fromBuffer if available or just the buffer with metadata
         const inputFile = InputFile.fromBuffer(buffer, file.name);
 
+        console.log('Sending file to Appwrite storage...');
         const storageFile = await adminClient.storage.createFile(
             SERVER_CONFIG.bucketId,
             'unique()',
             inputFile
         );
+        console.log('Storage file created:', storageFile.$id);
 
         // 2. Create document in database
+        console.log('Creating database document...');
         const document = await adminClient.databases.createDocument(
             SERVER_CONFIG.databaseId,
             SERVER_CONFIG.collections.content,
@@ -88,11 +102,20 @@ export async function POST(request: Request) {
                 updatedAt: new Date().toISOString()
             }
         );
+        console.log('Database document created:', document.$id);
 
         return NextResponse.json(document);
     } catch (error: any) {
-        console.error('Content creation failed:', error);
+        console.error('--- Content creation failed ---');
+        console.error('Error name:', error.name);
+        console.error('Error message:', error.message);
+        console.error('Error status:', error.status);
+        console.error('Error stack:', error.stack);
+
         const status = error.message?.includes('Unauthorized') || error.message?.includes('JWT') || error.message?.includes('Expired') ? 401 : (error.status || 500);
-        return NextResponse.json({ error: error.message }, { status });
+        return NextResponse.json({
+            error: error.message || 'Internal Server Error',
+            details: process.env.NODE_ENV === 'development' ? error.stack : undefined
+        }, { status });
     }
 }

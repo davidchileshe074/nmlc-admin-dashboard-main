@@ -91,13 +91,21 @@ export default function ContentPage() {
                 setTitle('');
                 setDescription('');
                 setFile(null);
+                alert('Content uploaded successfully!');
             } else {
-                const error = await res.json();
-                alert(error.error || 'Upload failed');
+                const contentType = res.headers.get("content-type");
+                if (contentType && contentType.includes("application/json")) {
+                    const error = await res.json();
+                    alert(error.error || 'Upload failed');
+                } else {
+                    const text = await res.text();
+                    console.error("Server error (non-JSON):", text);
+                    alert(`Upload failed: ${res.status} ${res.statusText}. This might be due to file size limits on the hosted server (e.g. Vercel's 4.5MB limit).`);
+                }
             }
-        } catch (err) {
-            console.error(err);
-            alert('An error occurred during upload');
+        } catch (err: any) {
+            console.error('Upload catch block:', err);
+            alert(`An error occurred: ${err.message || 'Unknown error'}`);
         } finally {
             setUploading(false);
         }
@@ -188,7 +196,7 @@ export default function ContentPage() {
                                                 </span>
                                                 <span className="text-[10px] font-bold px-1.5 py-0.5 rounded-full bg-blue-50 text-blue-600 border border-blue-100 italic">
                                                     {item.program}
-                                                </span>                                   
+                                                </span>
                                             </div>
                                         </TableCell>
                                         <TableCell className="text-xs text-slate-500">
