@@ -32,7 +32,22 @@ export async function GET(request: Request) {
 
         return NextResponse.json(notifications);
     } catch (error: any) {
-        console.error('Fetch notifications error:', error);
+        console.error('Fetch notifications error:', error.name, error.message);
+
+        // Deep check for network timeouts (often wrapped in TypeError in Node fetch)
+        const isTimeout =
+            error.code === 'UND_ERR_CONNECT_TIMEOUT' ||
+            error.name === 'ConnectTimeoutError' ||
+            error.cause?.code === 'UND_ERR_CONNECT_TIMEOUT' ||
+            error.cause?.name === 'ConnectTimeoutError';
+
+        if (isTimeout) {
+            return NextResponse.json({
+                error: 'Connection Timeout: Appwrite Cloud is taking too long to respond. Please check your internet or VPN.',
+                code: 'TIMEOUT'
+            }, { status: 540 });
+        }
+
         const status = error.message?.includes('Unauthorized') || error.message?.includes('JWT') || error.message?.includes('Expired') ? 401 : (error.status || 500);
         return NextResponse.json({ error: error.message }, { status });
     }

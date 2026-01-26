@@ -32,6 +32,8 @@ import {
     CheckCircle2
 } from 'lucide-react';
 import { Content } from '@/types';
+import { storage, ID, APPWRITE_CONFIG } from '@/lib/appwrite';
+
 
 const COURSES_DATA = {
     RN: {
@@ -191,6 +193,17 @@ export default function ContentPage() {
 
         setUploading(true);
         try {
+            // 1. Upload file directly to Appwrite Storage (Client-side)
+            // This bypasses server payload limits and handles large files better
+            const fileResponse = await storage.createFile(
+                APPWRITE_CONFIG.bucketId,
+                ID.unique(),
+                file
+            );
+
+            const storageFileId = fileResponse.$id;
+
+            // 2. Call our API to create the database record
             const formData = new FormData();
             formData.append('title', title);
             formData.append('description', description);
@@ -198,7 +211,7 @@ export default function ContentPage() {
             formData.append('yearOfStudy', yearOfStudy);
             formData.append('program', program);
             formData.append('subject', subject);
-            formData.append('file', file);
+            formData.append('storageFileId', storageFileId); // Send the ID, not the file
 
             const res = await fetch('/api/admin/content', {
                 method: 'POST',

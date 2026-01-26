@@ -2,7 +2,6 @@ import { NextResponse } from 'next/server';
 import { assertAdmin } from '@/server/auth';
 import { createAdminClient, SERVER_CONFIG } from '@/server/appwrite';
 import { Query } from 'node-appwrite';
-import { InputFile } from 'node-appwrite/file';
 
 // Force rebuild
 
@@ -71,7 +70,8 @@ export async function POST(request: Request) {
 
         const adminClient = createAdminClient();
 
-        // 1. (Skipped) Upload file to storage - Now handled by client
+        // 1. File storage is now handled by the client side to support 
+        // large uploads and bypass server-side limits.
 
         // 2. Create document in database
         console.log('Creating database document...');

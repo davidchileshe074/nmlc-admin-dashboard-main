@@ -44,7 +44,7 @@ export const createSessionClient = (session: string) => {
 
 export const SERVER_CONFIG = {
     databaseId: process.env.APPWRITE_DATABASE_ID!,
-    bucketId: process.env.APPWRITE_BUCKET_ID!,
+    bucketId: process.env.NEXT_PUBLIC_APPWRITE_BUCKET_ID!,
     collections: {
         admins: process.env.COL_ADMINS || 'admins',
         profiles: process.env.COL_PROFILES || 'profiles',
