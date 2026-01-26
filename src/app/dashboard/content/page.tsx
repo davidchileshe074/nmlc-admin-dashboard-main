@@ -29,10 +29,13 @@ import {
     Loader2,
     X,
     UploadCloud,
-    CheckCircle2
+    CheckCircle2,
+    ChevronLeft,
+    ChevronRight,
 } from 'lucide-react';
 import { Content } from '@/types';
 import { storage, ID, APPWRITE_CONFIG } from '@/lib/appwrite';
+import { useSearchParams } from 'next/navigation';
 
 
 const COURSES_DATA = {
@@ -115,10 +118,15 @@ const COURSES_DATA = {
     }
 };
 
+const ITEMS_PER_PAGE = 10;
+
 export default function ContentPage() {
+    const searchParams = useSearchParams();
+    const initialSearch = searchParams.get('search') || '';
+
     const [content, setContent] = useState<Content[]>([]);
     const [loading, setLoading] = useState(true);
-    const [search, setSearch] = useState('');
+    const [search, setSearch] = useState(initialSearch);
     const [activeTab, setActiveTab] = useState<'ALL' | 'MEDIA' | 'PAST_PAPER' | 'MARKING_KEY'>('ALL');
     const [filterYear, setFilterYear] = useState('ALL');
     const [filterProgram, setFilterProgram] = useState('ALL');
@@ -126,6 +134,8 @@ export default function ContentPage() {
     const [uploading, setUploading] = useState(false);
     const [showDeleteModal, setShowDeleteModal] = useState(false);
     const [itemToDelete, setItemToDelete] = useState<{ contentId: string; storageFileId: string; title: string } | null>(null);
+    const [currentPage, setCurrentPage] = useState(1);
+    const [totalItems, setTotalItems] = useState(0);
 
     // Form states
     const [title, setTitle] = useState('');
@@ -147,6 +157,13 @@ export default function ContentPage() {
         }
     }, [program, yearOfStudy]);
 
+    useEffect(() => {
+        const urlSearch = searchParams.get('search');
+        if (urlSearch !== null && urlSearch !== search) {
+            setSearch(urlSearch);
+        }
+    }, [searchParams]);
+
     const fetchContent = async () => {
         setLoading(true);
         try {
@@ -163,6 +180,10 @@ export default function ContentPage() {
             if (filterYear !== 'ALL') params.append('year', filterYear);
             if (filterProgram !== 'ALL') params.append('program', filterProgram);
 
+            // Pagination params
+            params.append('limit', ITEMS_PER_PAGE.toString());
+            params.append('offset', ((currentPage - 1) * ITEMS_PER_PAGE).toString());
+
             const res = await fetch(`/api/admin/content?${params}`);
             let data = await res.json();
             let documents = data.documents || [];
@@ -173,6 +194,7 @@ export default function ContentPage() {
             }
 
             setContent(documents);
+            setTotalItems(data.total || 0);
         } catch (err) {
             console.error(err);
         } finally {
@@ -185,6 +207,12 @@ export default function ContentPage() {
             fetchContent();
         }, 300);
         return () => clearTimeout(timeout);
+
+    }, [search, activeTab, filterYear, filterProgram, currentPage]);
+
+    // Reset page when filters change
+    useEffect(() => {
+        setCurrentPage(1);
     }, [search, activeTab, filterYear, filterProgram]);
 
     const handleUpload = async (e: React.FormEvent) => {
@@ -230,9 +258,10 @@ export default function ContentPage() {
                 const error = await res.json();
                 toast.error(error.error || 'Upload failed');
             }
-        } catch (err) {
-            console.error(err);
-            toast.error('An error occurred during upload');
+        } catch (err: any) {
+            console.error('Upload error details:', err);
+            const errorMessage = err.message || 'An error occurred during upload';
+            toast.error(errorMessage);
         } finally {
             setUploading(false);
         }
@@ -354,76 +383,176 @@ export default function ContentPage() {
                     </div>
                 </CardHeader>
                 <CardContent className="p-0">
-                    <Table>
-                        <TableHeader>
-                            <TableRow className="hover:bg-transparent">
-                                <TableHead>Type</TableHead>
-                                <TableHead>Title & Description</TableHead>
-                                <TableHead>Subject / Course</TableHead>
-                                <TableHead>Year / Program</TableHead>
-                                <TableHead>Added On</TableHead>
-                                <TableHead className="text-right">Actions</TableHead>
-                            </TableRow>
-                        </TableHeader>
-                        <TableBody>
-                            {loading ? (
-                                <TableRow>
-                                    <TableCell colSpan={6} className="h-48 text-center">
-                                        <Loader2 className="w-8 h-8 text-blue-600 animate-spin mx-auto" />
-                                    </TableCell>
+                    <div className="hidden md:block">
+                        <Table>
+                            <TableHeader>
+                                <TableRow className="hover:bg-transparent bg-slate-50/50">
+                                    <TableHead className="w-[100px]">Type</TableHead>
+                                    <TableHead>Title & Description</TableHead>
+                                    <TableHead>Subject / Course</TableHead>
+                                    <TableHead>Year / Program</TableHead>
+                                    <TableHead>Date</TableHead>
+                                    <TableHead className="text-right w-[80px]">Actions</TableHead>
                                 </TableRow>
-                            ) : content.length === 0 ? (
-                                <TableRow>
-                                    <TableCell colSpan={6} className="h-48 text-center text-slate-500">
-                                        No content found.
-                                    </TableCell>
-                                </TableRow>
-                            ) : (
-                                content.map((item) => (
-                                    <TableRow key={item.$id}>
-                                        <TableCell>
-                                            {item.type === 'PDF' && <FileText className="w-5 h-5 text-red-500" />}
-                                            {item.type === 'AUDIO' && <Music className="w-5 h-5 text-blue-500" />}
-                                            {item.type === 'PAST_PAPER' && <FileBox className="w-5 h-5 text-purple-500" />}
-                                            {item.type === 'MARKING_KEY' && <CheckCircle2 className="w-5 h-5 text-green-500" />}
-                                        </TableCell>
-                                        <TableCell>
-                                            <div>
-                                                <p className="font-semibold text-slate-900">{item.title}</p>
-                                                <p className="text-xs text-slate-500 truncate max-w-xs">{item.description}</p>
-                                            </div>
-                                        </TableCell>
-                                        <TableCell>
-                                            <span className="text-sm text-slate-700 font-medium">
-                                                {item.subject || '—'}
-                                            </span>
-                                        </TableCell>
-                                        <TableCell>
-                                            <div className="flex gap-2">
-                                                <span className="text-[10px] font-bold px-1.5 py-0.5 rounded-full bg-slate-100 text-slate-600 border border-slate-200 uppercase">
-                                                    {item.yearOfStudy.replace('_', ' ')}
-                                                </span>
-                                                <span className="text-[10px] font-bold px-1.5 py-0.5 rounded-full bg-blue-50 text-blue-600 border border-blue-100 italic">
-                                                    {item.program}
-                                                </span>
-                                            </div>
-                                        </TableCell>
-                                        <TableCell className="text-xs text-slate-500">
-                                            {new Date(item.createdAt || '').toLocaleDateString()}
-                                        </TableCell>
-                                        <TableCell className="text-right">
-                                            <div className="flex items-center justify-end gap-2">
-                                                <Button variant="ghost" size="icon" onClick={() => handleDeleteClick(item.$id, item.storageFileId, item.title)}>
-                                                    <Trash2 className="w-4 h-4 text-slate-400 hover:text-red-500" />
-                                                </Button>
+                            </TableHeader>
+                            <TableBody>
+                                {loading ? (
+                                    <TableRow>
+                                        <TableCell colSpan={6} className="h-64 text-center">
+                                            <div className="flex flex-col items-center gap-2">
+                                                <Loader2 className="w-8 h-8 text-blue-600 animate-spin" />
+                                                <p className="text-sm text-slate-500">Loading catalog...</p>
                                             </div>
                                         </TableCell>
                                     </TableRow>
-                                ))
-                            )}
-                        </TableBody>
-                    </Table>
+                                ) : content.length === 0 ? (
+                                    <TableRow>
+                                        <TableCell colSpan={6} className="h-64 text-center">
+                                            <div className="flex flex-col items-center gap-2">
+                                                <div className="w-12 h-12 rounded-full bg-slate-100 flex items-center justify-center mb-2">
+                                                    <Search className="w-6 h-6 text-slate-400" />
+                                                </div>
+                                                <p className="text-slate-900 font-medium">No files found</p>
+                                                <p className="text-sm text-slate-500">Try adjusting your search or filters</p>
+                                            </div>
+                                        </TableCell>
+                                    </TableRow>
+                                ) : (
+                                    content.map((item) => (
+                                        <TableRow key={item.$id} className="group hover:bg-slate-50/80 transition-colors">
+                                            <TableCell>
+                                                <div className={cn(
+                                                    "w-10 h-10 rounded-xl flex items-center justify-center transition-transform group-hover:scale-110",
+                                                    item.type === 'PDF' && "bg-red-50 text-red-600",
+                                                    item.type === 'AUDIO' && "bg-blue-50 text-blue-600",
+                                                    item.type === 'PAST_PAPER' && "bg-purple-50 text-purple-600",
+                                                    item.type === 'MARKING_KEY' && "bg-green-50 text-green-600"
+                                                )}>
+                                                    {item.type === 'PDF' && <FileText className="w-5 h-5" />}
+                                                    {item.type === 'AUDIO' && <Music className="w-5 h-5" />}
+                                                    {item.type === 'PAST_PAPER' && <FileBox className="w-5 h-5" />}
+                                                    {item.type === 'MARKING_KEY' && <CheckCircle2 className="w-5 h-5" />}
+                                                </div>
+                                            </TableCell>
+                                            <TableCell>
+                                                <div className="max-w-md">
+                                                    <p className="font-semibold text-slate-900 line-clamp-1">{item.title}</p>
+                                                    <p className="text-xs text-slate-500 line-clamp-1 mt-0.5">{item.description || 'No description provided'}</p>
+                                                </div>
+                                            </TableCell>
+                                            <TableCell>
+                                                <span className="text-sm text-slate-700 font-medium bg-slate-100/80 px-2.5 py-1 rounded-md">
+                                                    {item.subject || 'General'}
+                                                </span>
+                                            </TableCell>
+                                            <TableCell>
+                                                <div className="flex items-center gap-2">
+                                                    <span className="px-2 py-0.5 rounded text-[10px] font-bold bg-white border border-slate-200 text-slate-600 uppercase">
+                                                        {item.yearOfStudy.replace('_', ' ')}
+                                                    </span>
+                                                    <span className="px-2 py-0.5 rounded text-[10px] font-bold bg-blue-600 text-white shadow-sm italic">
+                                                        {item.program}
+                                                    </span>
+                                                </div>
+                                            </TableCell>
+                                            <TableCell>
+                                                <p className="text-xs text-slate-400 font-medium whitespace-nowrap">
+                                                    {new Date(item.createdAt || '').toLocaleDateString('en-GB', { day: '2-digit', month: 'short' })}
+                                                </p>
+                                            </TableCell>
+                                            <TableCell className="text-right">
+                                                <Button
+                                                    variant="ghost"
+                                                    size="icon"
+                                                    onClick={() => handleDeleteClick(item.$id, item.storageFileId, item.title)}
+                                                    className="opacity-0 group-hover:opacity-100 transition-opacity hover:bg-red-50 hover:text-red-600"
+                                                >
+                                                    <Trash2 className="w-4 h-4" />
+                                                </Button>
+                                            </TableCell>
+                                        </TableRow>
+                                    ))
+                                )}
+                            </TableBody>
+                        </Table>
+                    </div>
+
+                    {/* Mobile Card View */}
+                    <div className="md:hidden divide-y divide-slate-100">
+                        {loading ? (
+                            <div className="p-8 text-center flex flex-col items-center gap-3">
+                                <Loader2 className="w-8 h-8 text-blue-600 animate-spin" />
+                                <p className="text-sm text-slate-500 font-medium">Fetching contents...</p>
+                            </div>
+                        ) : content.length === 0 ? (
+                            <div className="p-12 text-center text-slate-500">
+                                <Search className="w-10 h-10 mx-auto mb-3 opacity-20" />
+                                <p className="text-sm font-medium">No results found</p>
+                            </div>
+                        ) : (
+                            content.map((item) => (
+                                <div key={item.$id} className="p-4 flex gap-4 active:bg-slate-50 transition-colors">
+                                    <div className={cn(
+                                        "w-12 h-12 rounded-2xl flex items-center justify-center flex-shrink-0 shadow-sm",
+                                        item.type === 'PDF' && "bg-gradient-to-br from-red-50 to-red-100 text-red-600 border border-red-200/50",
+                                        item.type === 'AUDIO' && "bg-gradient-to-br from-blue-50 to-blue-100 text-blue-600 border border-blue-200/50",
+                                        item.type === 'PAST_PAPER' && "bg-gradient-to-br from-purple-50 to-purple-100 text-purple-600 border border-purple-200/50",
+                                        item.type === 'MARKING_KEY' && "bg-gradient-to-br from-green-50 to-green-100 text-green-600 border border-green-200/50"
+                                    )}>
+                                        {item.type === 'PDF' && <FileText className="w-6 h-6" />}
+                                        {item.type === 'AUDIO' && <Music className="w-6 h-6" />}
+                                        {item.type === 'PAST_PAPER' && <FileBox className="w-6 h-6" />}
+                                        {item.type === 'MARKING_KEY' && <CheckCircle2 className="w-6 h-6" />}
+                                    </div>
+                                    <div className="flex-1 min-w-0 flex flex-col justify-between">
+                                        <div className="flex items-start justify-between gap-2">
+                                            <h3 className="font-bold text-slate-900 text-sm line-clamp-1 truncate leading-tight">{item.title}</h3>
+                                            <button
+                                                onClick={() => handleDeleteClick(item.$id, item.storageFileId, item.title)}
+                                                className="p-1.5 -m-1.5 text-slate-400 active:text-red-500"
+                                            >
+                                                <Trash2 className="w-4 h-4" />
+                                            </button>
+                                        </div>
+                                        <p className="text-[11px] text-slate-500 line-clamp-1 mt-0.5">{item.description || item.subject}</p>
+                                        <div className="flex items-center gap-2 mt-2">
+                                            <span className="bg-slate-100 text-slate-700 text-[10px] font-bold px-2 py-0.5 rounded uppercase">{item.yearOfStudy.replace('_', ' ')}</span>
+                                            <span className="bg-blue-600/10 text-blue-700 text-[10px] font-bold px-2 py-0.5 rounded">{item.program}</span>
+                                        </div>
+                                    </div>
+                                </div>
+                            ))
+                        )}
+                    </div>
                 </CardContent>
+                <div className="flex items-center justify-between px-4 py-3 border-t border-slate-100 bg-slate-50/50">
+                    <div className="text-xs text-slate-500">
+                        Showing <span className="font-medium text-slate-900">{content.length}</span> of <span className="font-medium text-slate-900">{totalItems}</span> results
+                    </div>
+                    <div className="flex items-center gap-2">
+                        <Button
+                            variant="ghost"
+                            size="sm"
+                            onClick={() => setCurrentPage(p => Math.max(1, p - 1))}
+                            disabled={currentPage === 1 || loading}
+                            className="h-8 w-8 p-0"
+                        >
+                            <ChevronLeft className="w-4 h-4" />
+                        </Button>
+                        <span className="text-xs font-medium text-slate-700 min-w-[3rem] text-center">
+                            Page {currentPage} of {Math.ceil(totalItems / ITEMS_PER_PAGE) || 1}
+                        </span>
+                        <Button
+                            variant="ghost"
+                            size="sm"
+                            onClick={() => setCurrentPage(p => p + 1)}
+                            disabled={currentPage >= Math.ceil(totalItems / ITEMS_PER_PAGE) || loading}
+                            className="h-8 w-8 p-0"
+                        >
+                            <ChevronRight className="w-4 h-4" />
+                        </Button>
+                    </div>
+                </div>
             </Card>
 
             {/* Upload Modal Overlay */}

@@ -31,6 +31,7 @@ import {
     XCircle,
     Clock
 } from 'lucide-react';
+import { useSearchParams } from 'next/navigation';
 import { Profile, Subscription } from '@/types';
 import { DateTime } from 'luxon';
 
@@ -39,13 +40,23 @@ interface StudentWithSub extends Profile {
 }
 
 export default function StudentsPage() {
+    const searchParams = useSearchParams();
+    const initialSearch = searchParams.get('search') || '';
+
     const [students, setStudents] = useState<StudentWithSub[]>([]);
     const [total, setTotal] = useState(0);
     const [loading, setLoading] = useState(true);
-    const [search, setSearch] = useState('');
+    const [search, setSearch] = useState(initialSearch);
     const [year, setYear] = useState('');
     const [program, setProgram] = useState('');
     const [actionLoading, setActionLoading] = useState<string | null>(null);
+
+    useEffect(() => {
+        const urlSearch = searchParams.get('search');
+        if (urlSearch !== null && urlSearch !== search) {
+            setSearch(urlSearch);
+        }
+    }, [searchParams]);
 
     const fetchStudents = async () => {
         setLoading(true);

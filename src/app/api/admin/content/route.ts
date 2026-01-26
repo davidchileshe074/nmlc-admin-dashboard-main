@@ -14,10 +14,14 @@ export async function GET(request: Request) {
         const year = searchParams.get('year');
         const program = searchParams.get('program');
 
+        const limit = parseInt(searchParams.get('limit') || '10');
+        const offset = parseInt(searchParams.get('offset') || '0');
+
         const adminClient = createAdminClient();
         const queries = [
             Query.orderDesc('$createdAt'),
-            Query.limit(50)
+            Query.limit(limit),
+            Query.offset(offset)
         ];
 
         if (search) queries.push(Query.search('title', search));

@@ -40,13 +40,23 @@ export default function DashboardLayout({
 
   return (
     <div className="flex bg-slate-50 min-h-screen text-slate-900 font-sans">
-      <Sidebar
-        mobileOpen={mobileMenuOpen}
-        onMobileClose={() => setMobileMenuOpen(false)}
-      />
-      <div className="flex-1 flex flex-col min-w-0 overflow-hidden">
+      <div className="hidden lg:block sticky top-0 h-screen">
+        <Sidebar
+          mobileOpen={mobileMenuOpen}
+          onMobileClose={() => setMobileMenuOpen(false)}
+        />
+      </div>
+      {/* Mobile Sidebar (always fixed/absolute inside Sidebar component) */}
+      <div className="lg:hidden">
+        <Sidebar
+          mobileOpen={mobileMenuOpen}
+          onMobileClose={() => setMobileMenuOpen(false)}
+        />
+      </div>
+
+      <div className="flex-1 flex flex-col min-w-0">
         <Header onMenuClick={() => setMobileMenuOpen(true)} />
-        <main className="flex-1 overflow-y-auto p-4 lg:p-8">
+        <main className="flex-1 p-4 lg:p-8">
           <div className="max-w-7xl mx-auto space-y-8">
             {children}
           </div>

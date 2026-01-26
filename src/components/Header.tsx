@@ -1,7 +1,7 @@
 "use client";
 
 import { Bell, Search, User, LogOut, Settings, ChevronDown, X, Filter, Menu } from 'lucide-react';
-import { Input, Button } from '@/components/ui/base';
+import { Input, Button, cn } from '@/components/ui/base';
 import { useEffect, useState, useRef } from 'react';
 import { useRouter } from 'next/navigation';
 import { toast } from 'sonner';
@@ -112,7 +112,7 @@ export function Header({ onMenuClick }: { onMenuClick?: () => void }) {
                             id: student.$id,
                             title: student.fullName,
                             subtitle: student.email,
-                            url: `/dashboard/students`
+                            url: `/dashboard/students?search=${encodeURIComponent(student.fullName)}`
                         });
                     });
                 }
@@ -127,7 +127,7 @@ export function Header({ onMenuClick }: { onMenuClick?: () => void }) {
                             id: content.$id,
                             title: content.title,
                             subtitle: `${content.program} - ${content.yearOfStudy}`,
-                            url: `/dashboard/content`
+                            url: `/dashboard/content?search=${encodeURIComponent(content.title)}`
                         });
                     });
                 }
@@ -248,206 +248,238 @@ export function Header({ onMenuClick }: { onMenuClick?: () => void }) {
     };
 
     return (
-        <header className="h-16 border-b border-slate-200 bg-white px-4 lg:px-8 flex items-center justify-between sticky top-0 z-10 shadow-sm">
-            <div className="flex items-center gap-3 flex-1">
-                {/* Mobile Menu Button */}
-                <button
-                    onClick={onMenuClick}
-                    className="lg:hidden p-2 hover:bg-slate-100 rounded-lg text-slate-600"
-                >
-                    <Menu className="w-5 h-5" />
-                </button>
-
-                {/* Search */}
-                <div className="hidden sm:flex items-center w-full max-w-md relative" ref={searchRef}>
-                    <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400 w-4 h-4" />
-                    <Input
-                        placeholder="Search students, content..."
-                        className="pl-10 bg-slate-50 border-transparent focus:bg-white focus:border-slate-200"
-                        value={searchQuery}
-                        onChange={(e) => setSearchQuery(e.target.value)}
-                        onFocus={() => searchResults.length > 0 && setShowSearchResults(true)}
-                    />
-                    {searchQuery && (
-                        <button
-                            onClick={() => {
-                                setSearchQuery('');
-                                setShowSearchResults(false);
-                            }}
-                            className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600"
-                        >
-                            <X className="w-4 h-4" />
-                        </button>
-                    )}
-
-                    {/* Search Results Dropdown */}
-                    {showSearchResults && (
-                        <div className="absolute top-full left-0 right-0 mt-2 bg-white border border-slate-200 rounded-lg shadow-lg max-h-96 overflow-y-auto">
-                            {searching ? (
-                                <div className="p-4 text-center text-slate-500">Searching...</div>
-                            ) : searchResults.length > 0 ? (
-                                <div className="py-2">
-                                    {searchResults.map((result) => (
-                                        <button
-                                            key={result.id}
-                                            onClick={() => handleSearchResultClick(result.url)}
-                                            className="w-full px-4 py-3 hover:bg-slate-50 text-left border-b border-slate-100 last:border-none"
-                                        >
-                                            <div className="flex items-center gap-3">
-                                                <div className={`w-8 h-8 rounded-full flex items-center justify-center ${result.type === 'student' ? 'bg-blue-100 text-blue-600' : 'bg-purple-100 text-purple-600'
-                                                    }`}>
-                                                    {result.type === 'student' ? <User className="w-4 h-4" /> : <Search className="w-4 h-4" />}
-                                                </div>
-                                                <div className="flex-1">
-                                                    <p className="text-sm font-medium text-slate-900">{result.title}</p>
-                                                    <p className="text-xs text-slate-500">{result.subtitle}</p>
-                                                </div>
-                                            </div>
-                                        </button>
-                                    ))}
-                                </div>
-                            ) : (
-                                <div className="p-4 text-center text-slate-500">No results found</div>
-                            )}
-                        </div>
-                    )}
-                </div>
-            </div>
-
-            <div className="flex items-center gap-4">
-                {/* Notifications */}
-                <div className="relative" ref={notificationRef}>
+        <header className="h-20 border-b border-slate-200/60 bg-white/80 backdrop-blur-md sticky top-0 z-30 flex items-center shadow-sm">
+            <div className="w-full px-4 lg:px-8 flex items-center justify-between">
+                <div className="flex items-center gap-3">
+                    {/* Mobile Menu Button */}
                     <button
-                        onClick={() => setShowNotifications(!showNotifications)}
-                        className="p-2 text-slate-400 hover:text-slate-600 relative"
+                        onClick={onMenuClick}
+                        className="lg:hidden p-2 hover:bg-slate-100 rounded-lg text-slate-600"
                     >
-                        <Bell className="w-5 h-5" />
-                        {unreadCount > 0 && (
-                            <span className="absolute top-1 right-1 w-5 h-5 bg-red-500 text-white text-[10px] font-bold rounded-full flex items-center justify-center">
-                                {unreadCount > 9 ? '9+' : unreadCount}
-                            </span>
-                        )}
+                        <Menu className="w-5 h-5" />
                     </button>
 
-                    {/* Notifications Dropdown */}
-                    {showNotifications && (
-                        <div className="absolute top-full right-0 mt-2 w-96 bg-white border border-slate-200 rounded-lg shadow-lg">
-                            <div className="p-4 border-b border-slate-100">
-                                <div className="flex items-center justify-between mb-3">
-                                    <h3 className="font-semibold text-slate-900">Notifications</h3>
-                                    {unreadCount > 0 && (
-                                        <button
-                                            onClick={markAllAsRead}
-                                            className="text-xs text-blue-600 hover:text-blue-700 font-medium"
-                                        >
-                                            Mark all as read
-                                        </button>
-                                    )}
-                                </div>
+                </div>
 
-                                {/* Filter Tabs */}
-                                <div className="flex gap-2">
-                                    {(['all', 'info', 'warning', 'success'] as const).map((filter) => (
-                                        <button
-                                            key={filter}
-                                            onClick={() => setNotificationFilter(filter)}
-                                            className={`px-3 py-1 text-xs font-medium rounded-full transition-colors ${notificationFilter === filter
-                                                ? 'bg-blue-100 text-blue-700'
-                                                : 'bg-slate-100 text-slate-600 hover:bg-slate-200'
-                                                }`}
-                                        >
-                                            {filter.charAt(0).toUpperCase() + filter.slice(1)}
-                                        </button>
-                                    ))}
-                                </div>
-                            </div>
+                <div className="flex-1" />
 
-                            <div className="max-h-96 overflow-y-auto">
-                                {loadingNotifications ? (
-                                    <div className="p-8 text-center text-slate-500">
-                                        <div className="animate-spin w-6 h-6 border-2 border-blue-600 border-t-transparent rounded-full mx-auto"></div>
-                                        <p className="text-sm mt-2">Loading...</p>
-                                    </div>
-                                ) : filteredNotifications.length > 0 ? (
-                                    filteredNotifications.map((notification) => (
-                                        <div
-                                            key={notification.$id}
-                                            onClick={() => handleNotificationClick(notification)}
-                                            className={`p-4 border-b border-slate-100 last:border-none cursor-pointer hover:bg-slate-50 ${!notification.read ? 'bg-blue-50/50' : ''
-                                                }`}
-                                        >
-                                            <div className="flex gap-3">
-                                                <div className={`w-8 h-8 rounded-full flex items-center justify-center flex-shrink-0 ${getNotificationIcon(notification.type)}`}>
-                                                    <Bell className="w-4 h-4" />
-                                                </div>
-                                                <div className="flex-1 min-w-0">
-                                                    <div className="flex items-start justify-between gap-2">
-                                                        <p className="text-sm font-medium text-slate-900">{notification.title}</p>
-                                                        {!notification.read && (
-                                                            <span className="w-2 h-2 bg-blue-600 rounded-full flex-shrink-0 mt-1"></span>
-                                                        )}
+                <div className="flex items-center gap-4">
+                    {/* Search */}
+                    <div className="hidden sm:flex items-center w-full max-w-md relative" ref={searchRef}>
+                        <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400 w-4 h-4" />
+                        <Input
+                            placeholder="Search students, content..."
+                            className="pl-10 bg-slate-50 border-transparent focus:bg-white focus:border-slate-200"
+                            value={searchQuery}
+                            onChange={(e) => setSearchQuery(e.target.value)}
+                            onFocus={() => searchResults.length > 0 && setShowSearchResults(true)}
+                            onKeyDown={(e) => {
+                                if (e.key === 'Enter' && searchQuery.trim()) {
+                                    const firstResult = searchResults[0];
+                                    // Extract base path to avoid double ?search= parameters
+                                    const basePath = firstResult?.type === 'student' ? '/dashboard/students' : '/dashboard/content';
+                                    const targetUrl = `${basePath}?search=${encodeURIComponent(searchQuery)}`;
+
+                                    router.push(targetUrl);
+                                    setShowSearchResults(false);
+                                }
+                            }}
+                        />
+                        {searchQuery && (
+                            <button
+                                onClick={() => {
+                                    setSearchQuery('');
+                                    setShowSearchResults(false);
+                                }}
+                                className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600"
+                            >
+                                <X className="w-4 h-4" />
+                            </button>
+                        )}
+
+                        {/* Search Results Dropdown */}
+                        {showSearchResults && (
+                            <div className="absolute top-full left-0 right-0 mt-2 bg-white border border-slate-200 rounded-lg shadow-lg max-h-96 overflow-y-auto w-80 sm:w-96 right-0 left-auto">
+                                {searching ? (
+                                    <div className="p-4 text-center text-slate-500">Searching...</div>
+                                ) : searchResults.length > 0 ? (
+                                    <div className="py-2">
+                                        {searchResults.map((result) => (
+                                            <button
+                                                key={result.id}
+                                                onClick={() => handleSearchResultClick(result.url)}
+                                                className="w-full px-4 py-3 hover:bg-slate-50 text-left border-b border-slate-100 last:border-none"
+                                            >
+                                                <div className="flex items-center gap-3">
+                                                    <div className={`w-8 h-8 rounded-full flex items-center justify-center ${result.type === 'student' ? 'bg-blue-100 text-blue-600' : 'bg-purple-100 text-purple-600'
+                                                        }`}>
+                                                        {result.type === 'student' ? <User className="w-4 h-4" /> : <Search className="w-4 h-4" />}
                                                     </div>
-                                                    <p className="text-xs text-slate-600 mt-1">{notification.message}</p>
-                                                    <p className="text-xs text-slate-400 mt-1">{formatTimestamp(notification.$createdAt)}</p>
+                                                    <div className="flex-1">
+                                                        <p className="text-sm font-medium text-slate-900">{result.title}</p>
+                                                        <p className="text-xs text-slate-500">{result.subtitle}</p>
+                                                    </div>
                                                 </div>
-                                            </div>
-                                        </div>
-                                    ))
-                                ) : (
-                                    <div className="p-8 text-center text-slate-500">
-                                        <Bell className="w-12 h-12 mx-auto mb-2 text-slate-300" />
-                                        <p className="text-sm">No {notificationFilter !== 'all' ? notificationFilter : ''} notifications</p>
+                                            </button>
+                                        ))}
                                     </div>
+                                ) : (
+                                    <div className="p-4 text-center text-slate-500">No results found</div>
                                 )}
                             </div>
-                        </div>
-                    )}
-                </div>
+                        )}
+                    </div>
+                    {/* Notifications */}
+                    <div className="relative" ref={notificationRef}>
+                        <button
+                            onClick={() => setShowNotifications(!showNotifications)}
+                            className="p-2 text-slate-400 hover:text-slate-600 relative"
+                        >
+                            <Bell className="w-5 h-5" />
+                            {unreadCount > 0 && (
+                                <span className="absolute top-1 right-1 w-5 h-5 bg-red-500 text-white text-[10px] font-bold rounded-full flex items-center justify-center">
+                                    {unreadCount > 9 ? '9+' : unreadCount}
+                                </span>
+                            )}
+                        </button>
 
-                {/* Profile Menu */}
-                <div className="relative" ref={profileRef}>
-                    <button
-                        onClick={() => setShowProfileMenu(!showProfileMenu)}
-                        className="flex items-center gap-3 pl-4 border-l border-slate-100 hover:bg-slate-50 rounded-lg pr-2 py-1 transition-colors"
-                    >
-                        <div className="text-right hidden sm:block">
-                            <p className="text-sm font-medium text-slate-700">{user?.name || user?.email || 'Admin'}</p>
-                            <p className="text-xs text-slate-400 font-medium">Administrator</p>
-                        </div>
-                        <div className="w-10 h-10 rounded-full bg-blue-100 flex items-center justify-center text-blue-600">
-                            <User className="w-6 h-6" />
-                        </div>
-                        <ChevronDown className="w-4 h-4 text-slate-400" />
-                    </button>
+                        {/* Notifications Dropdown */}
+                        {showNotifications && (
+                            <div className="absolute top-full right-0 mt-2 w-96 bg-white border border-slate-200 rounded-lg shadow-lg">
+                                <div className="p-4 border-b border-slate-100">
+                                    <div className="flex items-center justify-between mb-3">
+                                        <h3 className="font-semibold text-slate-900">Notifications</h3>
+                                        {unreadCount > 0 && (
+                                            <button
+                                                onClick={markAllAsRead}
+                                                className="text-xs text-blue-600 hover:text-blue-700 font-medium"
+                                            >
+                                                Mark all as read
+                                            </button>
+                                        )}
+                                    </div>
 
-                    {/* Profile Dropdown */}
-                    {showProfileMenu && (
-                        <div className="absolute top-full right-0 mt-2 w-64 bg-white border border-slate-200 rounded-lg shadow-lg">
-                            <div className="p-4 border-b border-slate-100">
-                                <p className="text-sm font-medium text-slate-900">{user?.name || user?.email || 'Admin'}</p>
-                                <p className="text-xs text-slate-500 mt-1">Administrator</p>
+                                    {/* Filter Tabs */}
+                                    <div className="flex gap-2">
+                                        {(['all', 'info', 'warning', 'success'] as const).map((filter) => (
+                                            <button
+                                                key={filter}
+                                                onClick={() => setNotificationFilter(filter)}
+                                                className={`px-3 py-1 text-xs font-medium rounded-full transition-colors ${notificationFilter === filter
+                                                    ? 'bg-blue-100 text-blue-700'
+                                                    : 'bg-slate-100 text-slate-600 hover:bg-slate-200'
+                                                    }`}
+                                            >
+                                                {filter.charAt(0).toUpperCase() + filter.slice(1)}
+                                            </button>
+                                        ))}
+                                    </div>
+                                </div>
+
+                                <div className="max-h-96 overflow-y-auto">
+                                    {loadingNotifications ? (
+                                        <div className="p-8 text-center text-slate-500">
+                                            <div className="animate-spin w-6 h-6 border-2 border-blue-600 border-t-transparent rounded-full mx-auto"></div>
+                                            <p className="text-sm mt-2">Loading...</p>
+                                        </div>
+                                    ) : filteredNotifications.length > 0 ? (
+                                        filteredNotifications.map((notification) => (
+                                            <div
+                                                key={notification.$id}
+                                                onClick={() => handleNotificationClick(notification)}
+                                                className={`p-4 border-b border-slate-100 last:border-none cursor-pointer hover:bg-slate-50 ${!notification.read ? 'bg-blue-50/50' : ''
+                                                    }`}
+                                            >
+                                                <div className="flex gap-3">
+                                                    <div className={`w-8 h-8 rounded-full flex items-center justify-center flex-shrink-0 ${getNotificationIcon(notification.type)}`}>
+                                                        <Bell className="w-4 h-4" />
+                                                    </div>
+                                                    <div className="flex-1 min-w-0">
+                                                        <div className="flex items-start justify-between gap-2">
+                                                            <p className="text-sm font-medium text-slate-900">{notification.title}</p>
+                                                            {!notification.read && (
+                                                                <span className="w-2 h-2 bg-blue-600 rounded-full flex-shrink-0 mt-1"></span>
+                                                            )}
+                                                        </div>
+                                                        <p className="text-xs text-slate-600 mt-1">{notification.message}</p>
+                                                        <p className="text-xs text-slate-400 mt-1">{formatTimestamp(notification.$createdAt)}</p>
+                                                    </div>
+                                                </div>
+                                            </div>
+                                        ))
+                                    ) : (
+                                        <div className="p-8 text-center text-slate-500">
+                                            <Bell className="w-12 h-12 mx-auto mb-2 text-slate-300" />
+                                            <p className="text-sm">No {notificationFilter !== 'all' ? notificationFilter : ''} notifications</p>
+                                        </div>
+                                    )}
+                                </div>
                             </div>
-                            <div className="py-2">
-                                <button
-                                    onClick={() => {
-                                        router.push('/dashboard/settings');
-                                        setShowProfileMenu(false);
-                                    }}
-                                    className="w-full px-4 py-2 text-left text-sm text-slate-700 hover:bg-slate-50 flex items-center gap-3"
-                                >
-                                    <Settings className="w-4 h-4" />
-                                    Settings
-                                </button>
-                                <button
-                                    onClick={handleLogout}
-                                    className="w-full px-4 py-2 text-left text-sm text-red-600 hover:bg-red-50 flex items-center gap-3"
-                                >
-                                    <LogOut className="w-4 h-4" />
-                                    Logout
-                                </button>
+                        )}
+                    </div>
+
+                    {/* Profile Menu */}
+                    <div className="relative" ref={profileRef}>
+                        <button
+                            onClick={() => setShowProfileMenu(!showProfileMenu)}
+                            className="flex items-center gap-2 sm:gap-3 pl-2 sm:pl-4 border-l border-slate-100 hover:bg-slate-50 rounded-lg pr-1 sm:pr-2 py-1 transition-all active:scale-95"
+                        >
+                            <div className="text-right hidden sm:block">
+                                <p className="text-sm font-bold text-slate-800 leading-tight truncate max-w-[150px]">
+                                    {user?.name || 'Admin'}
+                                </p>
+                                <p className="text-[10px] text-blue-600 font-bold uppercase tracking-wider">
+                                    Administrator
+                                </p>
                             </div>
-                        </div>
-                    )}
+                            <div className="relative">
+                                <div className="w-8 h-8 sm:w-10 sm:h-10 rounded-full bg-gradient-to-tr from-blue-600 to-indigo-600 flex items-center justify-center text-white shadow-sm ring-2 ring-white">
+                                    <User className="w-5 h-5 sm:w-6 sm:h-6" />
+                                </div>
+                                <div className="absolute -bottom-0.5 -right-0.5 w-3 h-3 bg-green-500 border-2 border-white rounded-full"></div>
+                            </div>
+                            <ChevronDown className={cn("w-4 h-4 text-slate-400 transition-transform duration-200", showProfileMenu && "rotate-180")} />
+                        </button>
+
+                        {/* Profile Dropdown */}
+                        {showProfileMenu && (
+                            <div className="absolute top-full right-0 mt-2 w-56 sm:w-64 bg-white border border-slate-200 rounded-xl shadow-xl overflow-hidden animate-in fade-in zoom-in-95 duration-100 origin-top-right">
+                                <div className="p-4 bg-slate-50/50 border-b border-slate-100">
+                                    <p className="text-sm font-bold text-slate-900 truncate">
+                                        {user?.name || user?.email || 'Admin'}
+                                    </p>
+                                    <p className="text-xs text-slate-500 mt-0.5 flex items-center gap-1.5">
+                                        <span className="w-1.5 h-1.5 bg-green-500 rounded-full"></span>
+                                        Administrator
+                                    </p>
+                                </div>
+                                <div className="p-1.5">
+                                    <button
+                                        onClick={() => {
+                                            router.push('/dashboard/settings');
+                                            setShowProfileMenu(false);
+                                        }}
+                                        className="w-full px-3 py-2 text-left text-sm text-slate-700 hover:bg-slate-100 rounded-lg flex items-center gap-3 transition-colors"
+                                    >
+                                        <div className="w-8 h-8 rounded-md bg-slate-100 flex items-center justify-center text-slate-500">
+                                            <Settings className="w-4 h-4" />
+                                        </div>
+                                        <span className="font-medium">Account Settings</span>
+                                    </button>
+                                    <div className="h-px bg-slate-100 my-1 mx-2"></div>
+                                    <button
+                                        onClick={handleLogout}
+                                        className="w-full px-3 py-2 text-left text-sm text-red-600 hover:bg-red-50 rounded-lg flex items-center gap-3 transition-colors group"
+                                    >
+                                        <div className="w-8 h-8 rounded-md bg-red-50 flex items-center justify-center text-red-500 group-hover:bg-red-100 transition-colors">
+                                            <LogOut className="w-4 h-4" />
+                                        </div>
+                                        <span className="font-bold">Logout</span>
+                                    </button>
+                                </div>
+                            </div>
+                        )}
+                    </div>
                 </div>
             </div>
         </header>
