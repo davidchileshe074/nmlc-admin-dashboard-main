@@ -61,28 +61,17 @@ export async function POST(request: Request) {
         const yearOfStudy = formData.get('yearOfStudy') as string;
         const program = formData.get('program') as string;
         const subject = formData.get('subject') as string;
-        const file = formData.get('file') as File;
+        const storageFileId = formData.get('storageFileId') as string; // Get direct ID
 
-        console.log(`Uploading: ${title} (${type}), File: ${file?.name}, Size: ${file?.size} bytes`);
+        console.log(`Creating record for: ${title} (${type}), Storage ID: ${storageFileId}`);
 
-        if (!title || !type || !yearOfStudy || !program || !file) {
+        if (!title || !type || !yearOfStudy || !program || !storageFileId) {
             return NextResponse.json({ error: 'Missing required fields' }, { status: 400 });
         }
 
         const adminClient = createAdminClient();
 
-        // 1. Upload file to storage
-        const arrayBuffer = await file.arrayBuffer();
-        const buffer = Buffer.from(arrayBuffer);
-        const inputFile = InputFile.fromBuffer(buffer, file.name);
-
-        console.log('Sending file to Appwrite storage...');
-        const storageFile = await adminClient.storage.createFile(
-            SERVER_CONFIG.bucketId,
-            'unique()',
-            inputFile
-        );
-        console.log('Storage file created:', storageFile.$id);
+        // 1. (Skipped) Upload file to storage - Now handled by client
 
         // 2. Create document in database
         console.log('Creating database document...');
@@ -97,7 +86,7 @@ export async function POST(request: Request) {
                 yearOfStudy: yearOfStudy.toLowerCase().replace('_', ''),
                 program,
                 subject: subject || null,
-                storageFileId: storageFile.$id,
+                storageFileId: storageFileId, // Use the ID passed from client
                 createdAt: new Date().toISOString(),
                 updatedAt: new Date().toISOString()
             }

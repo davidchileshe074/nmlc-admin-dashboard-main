@@ -31,6 +31,7 @@ import {
     CheckCircle2
 } from 'lucide-react';
 import { Content } from '@/types';
+import { storage, ID, APPWRITE_CONFIG } from '@/lib/appwrite';
 
 export default function ContentPage() {
     const [content, setContent] = useState<Content[]>([]);
@@ -71,13 +72,24 @@ export default function ContentPage() {
 
         setUploading(true);
         try {
+            // 1. Upload file directly to Appwrite Storage (Client-side)
+            // This bypasses the Vercel 4.5MB payload limit
+            const fileResponse = await storage.createFile(
+                APPWRITE_CONFIG.bucketId,
+                ID.unique(),
+                file
+            );
+
+            const storageFileId = fileResponse.$id;
+
+            // 2. Call our API to create the database record
             const formData = new FormData();
             formData.append('title', title);
             formData.append('description', description);
             formData.append('type', type);
             formData.append('yearOfStudy', yearOfStudy);
             formData.append('program', program);
-            formData.append('file', file);
+            formData.append('storageFileId', storageFileId); // Send the ID, not the file
 
             const res = await fetch('/api/admin/content', {
                 method: 'POST',
@@ -100,12 +112,12 @@ export default function ContentPage() {
                 } else {
                     const text = await res.text();
                     console.error("Server error (non-JSON):", text);
-                    alert(`Upload failed: ${res.status} ${res.statusText}. This might be due to file size limits on the hosted server (e.g. Vercel's 4.5MB limit).`);
+                    alert(`Upload failed: ${res.status} ${res.statusText}`);
                 }
             }
         } catch (err: any) {
-            console.error('Upload catch block:', err);
-            alert(`An error occurred: ${err.message || 'Unknown error'}`);
+            console.error('Upload error:', err);
+            alert(`An error occurred: ${err.message || 'Unknown error'}. Make sure your Appwrite Storage bucket has "Create" permissions for your user.`);
         } finally {
             setUploading(false);
         }
