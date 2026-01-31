@@ -299,10 +299,17 @@ export default function AccessCodesPage() {
                             </div>
 
                             <div className="space-y-2">
-                                <label className="text-sm font-medium">Duration</label>
-                                <div className="flex h-10 w-full items-center rounded-md border border-slate-200 bg-slate-50 px-3 text-sm text-slate-500">
-                                    30 Days (Fixed)
-                                </div>
+                                <label className="text-sm font-medium">Duration (Days) *</label>
+                                <select
+                                    className="flex h-10 w-full rounded-md border border-slate-200 bg-white px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+                                    value={duration}
+                                    onChange={(e) => setDuration(parseInt(e.target.value))}
+                                >
+                                    <option value={5}>5 Days</option>
+                                    <option value={10}>10 Days</option>
+                                    <option value={15}>15 Days</option>
+                                    <option value={30}>30 Days</option>
+                                </select>
                             </div>
 
                             <Button type="submit" className="w-full" disabled={generating || !selectedStudent || isSubscriptionActive}>

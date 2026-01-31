@@ -146,12 +146,13 @@ export default function ContentPage() {
     const [subject, setSubject] = useState('');
     const [file, setFile] = useState<File | null>(null);
 
-    const availableSubjects = COURSES_DATA[program as keyof typeof COURSES_DATA]?.[yearOfStudy as keyof (typeof COURSES_DATA)['RN']] || [];
+    const rawSubjects = COURSES_DATA[program as keyof typeof COURSES_DATA]?.[yearOfStudy as keyof (typeof COURSES_DATA)['RN']] || [];
+    const availableSubjects = ["Nursing Care Plan", ...rawSubjects];
 
     useEffect(() => {
         // Reset subject when program/year changes
         if (availableSubjects.length > 0) {
-            setSubject(availableSubjects[0]);
+            setSubject("Nursing Care Plan");
         } else {
             setSubject('');
         }
@@ -556,171 +557,175 @@ export default function ContentPage() {
             </Card>
 
             {/* Upload Modal Overlay */}
-            {showUploadModal && (
-                <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/40 backdrop-blur-sm animate-in fade-in duration-200 overflow-y-auto">
-                    <Card className="w-full max-w-xl shadow-2xl animate-in zoom-in-95 duration-200 my-8">
-                        <CardHeader className="flex flex-row items-center justify-between border-b border-slate-100 pb-4">
-                            <CardTitle>Add New Content</CardTitle>
-                            <Button variant="ghost" size="icon" onClick={() => setShowUploadModal(false)}>
-                                <X className="w-5 h-5" />
-                            </Button>
-                        </CardHeader>
-                        <CardContent className="pt-4 sm:pt-6">
-                            <form onSubmit={handleUpload} className="space-y-4 sm:space-y-6">
-                                <div className="grid grid-cols-1 md:grid-cols-2 gap-3 sm:gap-4">
-                                    <div className="space-y-1 sm:space-y-2 md:col-span-2">
-                                        <label className="text-sm font-medium">Title *</label>
-                                        <Input placeholder="e.g. Introduction to Nursing" value={title} onChange={e => setTitle(e.target.value)} required />
-                                    </div>
-                                    <div className="space-y-1 sm:space-y-2 md:col-span-2">
-                                        <label className="text-sm font-medium">Description</label>
-                                        <textarea
-                                            className="flex min-h-[60px] sm:min-h-[80px] w-full rounded-md border border-slate-200 bg-white px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
-                                            placeholder="Brief summary..."
-                                            value={description}
-                                            onChange={e => setDescription(e.target.value)}
-                                        />
-                                    </div>
-                                    <div className="space-y-1 sm:space-y-2">
-                                        <label className="text-sm font-medium">Type</label>
-                                        <select className="flex h-10 w-full rounded-md border border-slate-200 bg-white px-3 py-2 text-sm focus:outline-none" value={type} onChange={e => setType(e.target.value)}>
-                                            <option value="PDF">PDF</option>
-                                            <option value="AUDIO">Audio</option>
-                                            <option value="PAST_PAPER">Past Paper</option>
-                                            <option value="MARKING_KEY">Marking Key</option>
-                                        </select>
-                                    </div>
-                                    <div className="space-y-1 sm:space-y-2">
-                                        <label className="text-sm font-medium">Year</label>
-                                        <select className="flex h-10 w-full rounded-md border border-slate-200 bg-white px-3 py-2 text-sm focus:outline-none" value={yearOfStudy} onChange={e => setYearOfStudy(e.target.value)}>
-                                            <option value="YEAR_1">Year 1</option>
-                                            <option value="YEAR_2">Year 2</option>
-                                            <option value="YEAR_3">Year 3</option>
-                                        </select>
-                                    </div>
-                                    <div className="space-y-1 sm:space-y-2">
-                                        <label className="text-sm font-medium">Program</label>
-                                        <select className="flex h-10 w-full rounded-md border border-slate-200 bg-white px-3 py-2 text-sm focus:outline-none" value={program} onChange={e => setProgram(e.target.value)}>
-                                            <option value="RN">RN</option>
-                                            <option value="MIDWIFERY">Midwifery</option>
-                                            <option value="PUBLIC_HEALTH">Public Health</option>
-                                            <option value="MENTAL_HEALTH">Mental Health</option>
-                                            <option value="ONCOLOGY">Oncology</option>
-                                            <option value="PAEDIATRIC">Paediatric</option>
-                                        </select>
-                                    </div>
-                                    <div className="space-y-1 sm:space-y-2">
-                                        <label className="text-sm font-medium">Subject</label>
-                                        <select
-                                            className="flex h-10 w-full rounded-md border border-slate-200 bg-white px-3 py-2 text-sm focus:outline-none"
-                                            value={subject}
-                                            onChange={e => setSubject(e.target.value)}
-                                            disabled={!availableSubjects.length}
-                                        >
-                                            <option value="">Select...</option>
-                                            {availableSubjects.map((sub: string) => (
-                                                <option key={sub} value={sub}>{sub}</option>
-                                            ))}
-                                        </select>
-                                    </div>
-                                    <div className="space-y-1 sm:space-y-2 md:col-span-2">
-                                        <label className="text-sm font-medium">File Upload *</label>
-                                        <div className={cn(
-                                            "mt-1 flex justify-center px-4 py-4 sm:px-6 sm:py-5 border-2 border-dashed rounded-lg transition-colors",
-                                            file ? "border-green-300 bg-green-50" : "border-slate-300 hover:border-blue-400"
-                                        )}>
-                                            <div className="space-y-1 text-center">
-                                                {file ? (
-                                                    <div className="flex flex-col items-center">
-                                                        <CheckCircle2 className="w-8 h-8 text-green-500 mb-1" />
-                                                        <p className="text-xs font-medium text-green-800 truncate max-w-[200px]">{file.name}</p>
-                                                        <button type="button" onClick={() => setFile(null)} className="text-[10px] text-red-500 underline mt-1">Remove</button>
-                                                    </div>
-                                                ) : (
-                                                    <>
-                                                        <UploadCloud className="mx-auto h-8 w-8 text-slate-400" />
-                                                        <div className="flex text-xs text-slate-600 justify-center">
-                                                            <label className="relative cursor-pointer bg-white rounded-md font-medium text-blue-600 hover:text-blue-500">
-                                                                <span>Upload</span>
-                                                                <input type="file" className="sr-only" onChange={e => setFile(e.target.files?.[0] || null)} />
-                                                            </label>
-                                                            <p className="pl-1 hidden sm:block">or drag and drop</p>
+            {
+                showUploadModal && (
+                    <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/40 backdrop-blur-sm animate-in fade-in duration-200 overflow-y-auto">
+                        <Card className="w-full max-w-xl shadow-2xl animate-in zoom-in-95 duration-200 my-8">
+                            <CardHeader className="flex flex-row items-center justify-between border-b border-slate-100 pb-4">
+                                <CardTitle>Add New Content</CardTitle>
+                                <Button variant="ghost" size="icon" onClick={() => setShowUploadModal(false)}>
+                                    <X className="w-5 h-5" />
+                                </Button>
+                            </CardHeader>
+                            <CardContent className="pt-4 sm:pt-6">
+                                <form onSubmit={handleUpload} className="space-y-4 sm:space-y-6">
+                                    <div className="grid grid-cols-1 md:grid-cols-2 gap-3 sm:gap-4">
+                                        <div className="space-y-1 sm:space-y-2 md:col-span-2">
+                                            <label className="text-sm font-medium">Title *</label>
+                                            <Input placeholder="e.g. Introduction to Nursing" value={title} onChange={e => setTitle(e.target.value)} required />
+                                        </div>
+                                        <div className="space-y-1 sm:space-y-2 md:col-span-2">
+                                            <label className="text-sm font-medium">Description</label>
+                                            <textarea
+                                                className="flex min-h-[60px] sm:min-h-[80px] w-full rounded-md border border-slate-200 bg-white px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+                                                placeholder="Brief summary..."
+                                                value={description}
+                                                onChange={e => setDescription(e.target.value)}
+                                            />
+                                        </div>
+                                        <div className="space-y-1 sm:space-y-2">
+                                            <label className="text-sm font-medium">Type</label>
+                                            <select className="flex h-10 w-full rounded-md border border-slate-200 bg-white px-3 py-2 text-sm focus:outline-none" value={type} onChange={e => setType(e.target.value)}>
+                                                <option value="PDF">PDF</option>
+                                                <option value="AUDIO">Audio</option>
+                                                <option value="PAST_PAPER">Past Paper</option>
+                                                <option value="MARKING_KEY">Marking Key</option>
+                                            </select>
+                                        </div>
+                                        <div className="space-y-1 sm:space-y-2">
+                                            <label className="text-sm font-medium">Year</label>
+                                            <select className="flex h-10 w-full rounded-md border border-slate-200 bg-white px-3 py-2 text-sm focus:outline-none" value={yearOfStudy} onChange={e => setYearOfStudy(e.target.value)}>
+                                                <option value="YEAR_1">Year 1</option>
+                                                <option value="YEAR_2">Year 2</option>
+                                                <option value="YEAR_3">Year 3</option>
+                                            </select>
+                                        </div>
+                                        <div className="space-y-1 sm:space-y-2">
+                                            <label className="text-sm font-medium">Program</label>
+                                            <select className="flex h-10 w-full rounded-md border border-slate-200 bg-white px-3 py-2 text-sm focus:outline-none" value={program} onChange={e => setProgram(e.target.value)}>
+                                                <option value="RN">RN</option>
+                                                <option value="MIDWIFERY">Midwifery</option>
+                                                <option value="PUBLIC_HEALTH">Public Health</option>
+                                                <option value="MENTAL_HEALTH">Mental Health</option>
+                                                <option value="ONCOLOGY">Oncology</option>
+                                                <option value="PAEDIATRIC">Paediatric</option>
+                                            </select>
+                                        </div>
+                                        <div className="space-y-1 sm:space-y-2">
+                                            <label className="text-sm font-medium">Subject</label>
+                                            <select
+                                                className="flex h-10 w-full rounded-md border border-slate-200 bg-white px-3 py-2 text-sm focus:outline-none"
+                                                value={subject}
+                                                onChange={e => setSubject(e.target.value)}
+                                                disabled={!availableSubjects.length}
+                                            >
+                                                <option value="">Select...</option>
+                                                {availableSubjects.map((sub: string) => (
+                                                    <option key={sub} value={sub}>{sub}</option>
+                                                ))}
+                                            </select>
+                                        </div>
+                                        <div className="space-y-1 sm:space-y-2 md:col-span-2">
+                                            <label className="text-sm font-medium">File Upload *</label>
+                                            <div className={cn(
+                                                "mt-1 flex justify-center px-4 py-4 sm:px-6 sm:py-5 border-2 border-dashed rounded-lg transition-colors",
+                                                file ? "border-green-300 bg-green-50" : "border-slate-300 hover:border-blue-400"
+                                            )}>
+                                                <div className="space-y-1 text-center">
+                                                    {file ? (
+                                                        <div className="flex flex-col items-center">
+                                                            <CheckCircle2 className="w-8 h-8 text-green-500 mb-1" />
+                                                            <p className="text-xs font-medium text-green-800 truncate max-w-[200px]">{file.name}</p>
+                                                            <button type="button" onClick={() => setFile(null)} className="text-[10px] text-red-500 underline mt-1">Remove</button>
                                                         </div>
-                                                        <p className="text-[10px] text-slate-500">PDF or Audio (Max 100MB)</p>
-                                                    </>
-                                                )}
+                                                    ) : (
+                                                        <>
+                                                            <UploadCloud className="mx-auto h-8 w-8 text-slate-400" />
+                                                            <div className="flex text-xs text-slate-600 justify-center">
+                                                                <label className="relative cursor-pointer bg-white rounded-md font-medium text-blue-600 hover:text-blue-500">
+                                                                    <span>Upload</span>
+                                                                    <input type="file" className="sr-only" onChange={e => setFile(e.target.files?.[0] || null)} />
+                                                                </label>
+                                                                <p className="pl-1 hidden sm:block">or drag and drop</p>
+                                                            </div>
+                                                            <p className="text-[10px] text-slate-500">PDF or Audio (Max 100MB)</p>
+                                                        </>
+                                                    )}
+                                                </div>
                                             </div>
                                         </div>
                                     </div>
-                                </div>
 
-                                <div className="flex justify-end gap-3 pt-4 border-t border-slate-100">
-                                    <Button type="button" variant="ghost" size="sm" onClick={() => setShowUploadModal(false)}>Cancel</Button>
-                                    <Button type="submit" size="sm" disabled={uploading || !file} className="min-w-[100px]">
-                                        {uploading ? <Loader2 className="w-4 h-4 animate-spin mr-2" /> : null}
-                                        {uploading ? 'Processing...' : 'Create Content'}
-                                    </Button>
-                                </div>
-                            </form>
-                        </CardContent>
-                    </Card>
-                </div>
-            )}
+                                    <div className="flex justify-end gap-3 pt-4 border-t border-slate-100">
+                                        <Button type="button" variant="ghost" size="sm" onClick={() => setShowUploadModal(false)}>Cancel</Button>
+                                        <Button type="submit" size="sm" disabled={uploading || !file} className="min-w-[100px]">
+                                            {uploading ? <Loader2 className="w-4 h-4 animate-spin mr-2" /> : null}
+                                            {uploading ? 'Processing...' : 'Create Content'}
+                                        </Button>
+                                    </div>
+                                </form>
+                            </CardContent>
+                        </Card>
+                    </div>
+                )
+            }
 
             {/* Delete Confirmation Modal */}
-            {showDeleteModal && itemToDelete && (
-                <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/40 backdrop-blur-sm animate-in fade-in duration-200">
-                    <Card className="w-full max-w-md shadow-2xl animate-in zoom-in-95 duration-200">
-                        <CardHeader className="pb-4">
-                            <CardTitle className="flex items-center gap-2 text-red-600">
-                                <Trash2 className="w-5 h-5" />
-                                Confirm Deletion
-                            </CardTitle>
-                        </CardHeader>
-                        <CardContent className="space-y-4">
-                            <p className="text-slate-600">
-                                Are you sure you want to delete <span className="font-semibold text-slate-900">"{itemToDelete.title}"</span>?
-                            </p>
-                            <p className="text-sm text-red-600 bg-red-50 border border-red-200 rounded-md p-3">
-                                ⚠️ This action cannot be undone. The content and associated file will be permanently removed.
-                            </p>
-                            <div className="flex justify-end gap-3 pt-2">
-                                <Button
-                                    type="button"
-                                    variant="ghost"
-                                    size="sm"
-                                    onClick={() => {
-                                        setShowDeleteModal(false);
-                                        setItemToDelete(null);
-                                    }}
-                                    disabled={deleting}
-                                >
-                                    Cancel
-                                </Button>
-                                <Button
-                                    type="button"
-                                    size="sm"
-                                    onClick={handleConfirmDelete}
-                                    disabled={deleting}
-                                    className="bg-red-600 hover:bg-red-700 text-white min-w-[100px]"
-                                >
-                                    {deleting ? (
-                                        <>
-                                            <Loader2 className="w-4 h-4 animate-spin mr-2" />
-                                            Deleting...
-                                        </>
-                                    ) : (
-                                        <>
-                                            <Trash2 className="w-4 h-4 mr-2" />
-                                            Delete
-                                        </>
-                                    )}
-                                </Button>
-                            </div>
-                        </CardContent>
-                    </Card>
-                </div>
-            )}
+            {
+                showDeleteModal && itemToDelete && (
+                    <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/40 backdrop-blur-sm animate-in fade-in duration-200">
+                        <Card className="w-full max-w-md shadow-2xl animate-in zoom-in-95 duration-200">
+                            <CardHeader className="pb-4">
+                                <CardTitle className="flex items-center gap-2 text-red-600">
+                                    <Trash2 className="w-5 h-5" />
+                                    Confirm Deletion
+                                </CardTitle>
+                            </CardHeader>
+                            <CardContent className="space-y-4">
+                                <p className="text-slate-600">
+                                    Are you sure you want to delete <span className="font-semibold text-slate-900">"{itemToDelete.title}"</span>?
+                                </p>
+                                <p className="text-sm text-red-600 bg-red-50 border border-red-200 rounded-md p-3">
+                                    ⚠️ This action cannot be undone. The content and associated file will be permanently removed.
+                                </p>
+                                <div className="flex justify-end gap-3 pt-2">
+                                    <Button
+                                        type="button"
+                                        variant="ghost"
+                                        size="sm"
+                                        onClick={() => {
+                                            setShowDeleteModal(false);
+                                            setItemToDelete(null);
+                                        }}
+                                        disabled={deleting}
+                                    >
+                                        Cancel
+                                    </Button>
+                                    <Button
+                                        type="button"
+                                        size="sm"
+                                        onClick={handleConfirmDelete}
+                                        disabled={deleting}
+                                        className="bg-red-600 hover:bg-red-700 text-white min-w-[100px]"
+                                    >
+                                        {deleting ? (
+                                            <>
+                                                <Loader2 className="w-4 h-4 animate-spin mr-2" />
+                                                Deleting...
+                                            </>
+                                        ) : (
+                                            <>
+                                                <Trash2 className="w-4 h-4 mr-2" />
+                                                Delete
+                                            </>
+                                        )}
+                                    </Button>
+                                </div>
+                            </CardContent>
+                        </Card>
+                    </div>
+                )
+            }
         </div>
     );
 }
