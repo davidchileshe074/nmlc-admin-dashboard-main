@@ -25,8 +25,7 @@ export async function POST(request: Request) {
             subscriptions.documents[0].$id,
             {
                 status: 'EXPIRED',
-                endDate: new Date().toISOString(),
-                updatedAt: new Date().toISOString(),
+                endDate: new Date().toISOString()
             }
         );
 

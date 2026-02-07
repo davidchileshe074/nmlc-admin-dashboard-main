@@ -18,11 +18,14 @@ export async function createNotification(params: CreateNotificationParams) {
     try {
         const adminClient = createAdminClient();
 
+        const notificationId = ID.unique();
+
         const notification = await adminClient.databases.createDocument(
             SERVER_CONFIG.databaseId,
             SERVER_CONFIG.collections.notifications,
-            ID.unique(),
+            notificationId,
             {
+                notificationId,
                 type: params.type,
                 title: params.title,
                 message: params.message,

@@ -64,11 +64,14 @@ export async function POST(request: Request) {
 
         const adminClient = createAdminClient();
 
+        const notificationId = ID.unique();
+
         const notification = await adminClient.databases.createDocument(
             SERVER_CONFIG.databaseId,
             SERVER_CONFIG.collections.notifications,
-            ID.unique(),
+            notificationId,
             {
+                notificationId,
                 type,
                 title,
                 message,
