@@ -56,12 +56,14 @@ const COURSES_DATA = {
     },
     MENTAL_HEALTH: {
         YEAR_1: [
-            "Anatomy and Physiology", "Fundamentals of Nursing", "Health Communication in Nursing",
-            "Medical–Surgical Nursing", "Neuroscience", "Nutrition", "Professional Practice", "Public Health Nursing", "Sociology"
+            "Anatomy and physiology", "Fundamentals of Nursing", "Health Communication", "Microbiology",
+            "Medical surgical Nursing", "Neuroscience", "Nutrition", "Professional practice",
+            "Public health nursing", "Sociology", "Pharmacology"
         ],
         YEAR_2: [
-            "Introduction to Research", "Leadership, Management and Governance", "Medical–Surgical Nursing",
-            "Paediatric and Paediatric Nursing", "Pharmacology II", "Psychology II", "Psychiatry and Mental Health"
+            "Integrated reproductive health", "Introduction to research", "Leadership, management and Governance",
+            "Medical surgical Nursing", "Paediatrics and child health nursing", "Paediatrics and Paediatric Nursing",
+            "Pharmacology 2", "Psychiatric and Mental health Nursing"
         ],
         YEAR_3: [
             "Mental Health and Psychiatry", "Community Mental Health", "Leadership and Management"
@@ -103,11 +105,11 @@ const COURSES_DATA = {
             "Sociology", "Public Health", "Health Promotion", "Health Care Ethics and Public Health Law"
         ],
         YEAR_2: [
-            "Surgery and Surgical Nursing", "Integrated Reproductive Health", "Microbiology and Medical Microbiology",
-            "Leadership and Mental Health", "Public Health Nursing"
+            "Surgery and surgical Nursing", "Integrated reproductive health", "Pharmacology",
+            "Medicine and Medical Nursing", "Psychiatry and Mental health Nursing", "Public health nursing"
         ],
         YEAR_3: [
-            "Paediatric and Child Health", "Integrated Health", "Leadership and Management",
+            "Paediatric and Child Health", "Occupational Health", "Leadership and Management",
             "Research and Epidemiology", "Community Engagement"
         ]
     },
